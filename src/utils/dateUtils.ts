@@ -1,4 +1,4 @@
-import { Order, PaymentInstallment } from '@/types';
+import { Order } from '@/types';
 import { Timestamp } from 'firebase/firestore';
 
 export type Criticidad = 'vencido' | 'critico' | 'pronto' | 'normal' | 'sin-vencimiento';
@@ -21,7 +21,7 @@ export const getProximoVencimiento = (order: Order): { fecha: Date | null; criti
       // Ensure dueDate is a JS Date object for reliable comparison. Handle both Timestamp and string/number formats.
       const jsDueDate = inst.dueDate instanceof Timestamp 
         ? inst.dueDate.toDate() 
-        : new Date(inst.dueDate as any);
+        : new Date(inst.dueDate as string | number | Date);
       return { ...inst, jsDueDate };
     })
     .sort((a, b) => a.jsDueDate.getTime() - b.jsDueDate.getTime());

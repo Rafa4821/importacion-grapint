@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
-import { Order, Provider, Currency, OrderStatus } from '@/types';
+import { Order, Provider, OrderStatus } from '@/types';
 import { X } from 'lucide-react';
 
 // The data structure for our form

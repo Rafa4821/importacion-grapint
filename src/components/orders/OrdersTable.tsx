@@ -31,7 +31,7 @@ export default function OrdersTable({ orders, onEdit, onDelete }: OrdersTablePro
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
   };
 
-  const formatDate = (date: any) => {
+    const formatDate = (date: import('firebase/firestore').Timestamp) => {
     if (date && typeof date.toDate === 'function') {
       return date.toDate().toLocaleDateString('es-CL');
     }

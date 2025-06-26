@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Order, OrderStatus } from '@/types';
 import { getProximoVencimiento, VencimientoInfo } from '@/utils/dateUtils';
 import { getMontoPendiente } from '@/utils/orderUtils';
