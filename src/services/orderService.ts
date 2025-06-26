@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { PaymentTerms } from '@/types';
+
 import { collection, addDoc, getDocs, getDoc, deleteDoc, doc, serverTimestamp, Timestamp, DocumentData, QueryDocumentSnapshot, updateDoc } from 'firebase/firestore';
 import { Order, Provider, PaymentInstallment, OrderStatus, PaymentTerms, OrderFormData } from '@/types';
 
