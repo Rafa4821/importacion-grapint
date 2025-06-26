@@ -15,7 +15,7 @@ export default function KanbanPage() {
     try {
       const ordersData = await getOrders();
       setOrders(ordersData);
-    } catch (_error) {
+    } catch {
       toast.error('Error al cargar los pedidos.');
     } finally {
       setIsLoading(false);
