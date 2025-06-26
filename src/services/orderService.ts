@@ -1,7 +1,7 @@
 import { db } from '@/lib/firebase';
 import { PaymentTerms } from '@/types';
 import { collection, addDoc, getDocs, getDoc, deleteDoc, doc, serverTimestamp, Timestamp, DocumentData, QueryDocumentSnapshot, updateDoc } from 'firebase/firestore';
-import { Order, Provider, PaymentInstallment, OrderStatus } from '@/types';
+import { Order, Provider, PaymentInstallment, OrderStatus, PaymentTerms, OrderFormData } from '@/types';
 
 /**
  * Fetches all orders from the 'orders' collection.
@@ -39,7 +39,7 @@ export const deleteOrder = async (orderId: string): Promise<void> => {
  * Adds a new order to Firestore after calculating payment installments.
  * @param orderData The raw order data from the form.
  */
-type OrderFormDataForService = Omit<Order, 'id' | 'installments' | 'providerName' | 'createdAt' | 'updatedAt' | 'isPaid' | 'orderDate' | 'invoiceDate'> & {
+export type OrderFormDataForService = Omit<OrderFormData, 'orderDate' | 'invoiceDate'> & {
   orderDate: Date;
   invoiceDate?: Date;
 };

@@ -19,7 +19,7 @@ export default function ProvidersPage() {
       setIsLoading(true);
       const providersData = await getProviders();
       setProviders(providersData);
-    } catch (error) {
+    } catch {
       toast.error('Error al cargar los proveedores.');
     } finally {
       setIsLoading(false);
@@ -46,7 +46,6 @@ export default function ProvidersPage() {
       setEditingProvider(null);
       fetchProviders(); // Re-fetch providers to update the table
     } catch (error) {
-      // The toast will already show the error message
       console.error(error);
     }
   };

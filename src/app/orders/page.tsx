@@ -3,11 +3,16 @@
 import { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
 import OrdersTable from '@/components/orders/OrdersTable';
-
 import AddOrderModal from '@/components/orders/AddOrderModal';
-import { Order, Provider } from '@/types';
-import { getProviders } from '@/services/providerService'; 
-import { getOrders, addOrder, deleteOrder, updateOrder } from '@/services/orderService'; 
+import { Order, Provider, OrderFormData } from '@/types';
+import { getProviders } from '@/services/providerService';
+import {
+  getOrders,
+  addOrder,
+  deleteOrder,
+  updateOrder,
+  OrderFormDataForService
+} from '@/services/orderService';
 import toast from 'react-hot-toast';
 
 export default function OrdersPage() {
@@ -26,7 +31,7 @@ export default function OrdersPage() {
       ]);
       setOrders(ordersData);
       setProviders(providersData);
-    } catch (error) {
+    } catch {
       toast.error('Error al cargar los datos.');
     } finally {
       setIsLoading(false);
@@ -37,12 +42,18 @@ export default function OrdersPage() {
     fetchOrdersAndProviders();
   }, []);
 
-  const handleSaveOrder = async (data: any) => {
+  const handleSaveOrder = async (data: OrderFormData) => {
     const isEditing = !!editingOrder;
 
+    const dataForService: OrderFormDataForService = {
+      ...data,
+      orderDate: new Date(data.orderDate),
+      invoiceDate: data.invoiceDate ? new Date(data.invoiceDate) : undefined,
+    };
+
     const promise = isEditing
-      ? updateOrder(editingOrder.id, data)
-      : addOrder(data);
+      ? updateOrder(editingOrder!.id, dataForService)
+      : addOrder(dataForService);
 
     toast.promise(
       promise.then(() => {
@@ -80,8 +91,6 @@ export default function OrdersPage() {
     });
   };
 
-
-
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-4">
@@ -99,15 +108,15 @@ export default function OrdersPage() {
         {isLoading ? (
           <p>Cargando pedidos...</p>
         ) : (
-          <OrdersTable 
-            orders={orders} 
-            onEdit={handleEditOrder} 
-            onDelete={handleDeleteOrder} 
+          <OrdersTable
+            orders={orders}
+            onEdit={handleEditOrder}
+            onDelete={handleDeleteOrder}
           />
         )}
       </div>
 
-            {isModalOpen && (
+      {isModalOpen && (
         <AddOrderModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}

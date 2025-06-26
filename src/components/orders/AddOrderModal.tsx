@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
-import { Order, Provider, OrderStatus } from '@/types';
+import { Order, Provider, OrderStatus, OrderFormData } from '@/types';
 import { X } from 'lucide-react';
 
-// The data structure for our form
-type OrderFormData = Omit<Order, 'id' | 'installments' | 'providerName' | 'createdAt' | 'updatedAt' | 'isPaid' | 'orderDate' | 'invoiceDate'> & {
+// The data structure for our form internally, using Date objects
+type ModalFormData = Omit<Order, 'id' | 'installments' | 'providerName' | 'createdAt' | 'updatedAt' | 'isPaid' | 'orderDate' | 'invoiceDate'> & {
   orderDate: Date;
   invoiceDate?: Date;
 };
@@ -14,7 +14,7 @@ type OrderFormData = Omit<Order, 'id' | 'installments' | 'providerName' | 'creat
 interface AddOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: OrderFormData) => void;
+  onSave: (data: OrderFormData) => Promise<void> | void; // This now correctly refers to the imported type
   providers: Provider[];
   orderToEdit?: Order | null;
 }
@@ -33,7 +33,7 @@ const orderStatuses: OrderStatus[] = [
 ];
 
 export default function AddOrderModal({ isOpen, onClose, onSave, providers, orderToEdit }: AddOrderModalProps) {
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<OrderFormData>({
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<ModalFormData>({
     defaultValues: {
       orderNumber: '',
       providerId: '',
@@ -70,8 +70,14 @@ export default function AddOrderModal({ isOpen, onClose, onSave, providers, orde
 
   if (!isOpen) return null;
 
-  const onSubmit: SubmitHandler<OrderFormData> = (data) => {
-    onSave(data);
+    const onSubmit: SubmitHandler<ModalFormData> = (data) => {
+    // Transform dates from Date objects to strings before saving
+    const dataForSave: OrderFormData = {
+      ...data,
+      orderDate: data.orderDate.toISOString().split('T')[0],
+      invoiceDate: data.invoiceDate ? data.invoiceDate.toISOString().split('T')[0] : undefined,
+    };
+    onSave(dataForSave);
     onClose();
   };
 

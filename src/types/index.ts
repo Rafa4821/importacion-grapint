@@ -53,6 +53,11 @@ export interface PaymentInstallment {
   status: 'pendiente' | 'pagado';
 }
 
+export type OrderFormData = Omit<Order, 'id' | 'providerName' | 'isPaid' | 'installments' | 'createdAt' | 'updatedAt' | 'orderDate' | 'invoiceDate'> & {
+  orderDate: string;
+  invoiceDate?: string;
+};
+
 export interface Order {
   id: string;
   orderNumber: string;
