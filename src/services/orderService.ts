@@ -213,6 +213,26 @@ export const updateOrder = async (orderId: string, orderData: OrderFormDataForSe
   }
 };
 
+/**
+ * Fetches a single order by its ID.
+ * @param orderId The ID of the order to fetch.
+ * @returns An Order object or null if not found.
+ */
+export const getOrderById = async (orderId: string): Promise<Order | null> => {
+  try {
+    const orderDocRef = doc(db, 'orders', orderId);
+    const docSnap = await getDoc(orderDocRef);
+
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Order;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching order by ID: ', error);
+    throw new Error('Failed to fetch order.');
+  }
+};
+
 export const updateOrderStatus = async (orderId: string, status: OrderStatus): Promise<void> => {
   try {
     const orderDocRef = doc(db, 'orders', orderId);

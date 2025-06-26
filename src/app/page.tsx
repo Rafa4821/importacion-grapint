@@ -1,9 +1,111 @@
+'use client';
+
+import { useEffect, useState, useMemo } from 'react';
+import { Order } from '@/types';
+import { getOrders } from '@/services/orderService';
+import { getOrdersByMonth, getRevenueByMonth, getProviderRanking } from '@/utils/dashboard-processor';
+import { OrdersByMonthChart } from '@/components/dashboard/OrdersByMonthChart';
+import { RevenueByMonthChart } from '@/components/dashboard/RevenueByMonthChart';
+import { ProviderRankingChart } from '@/components/dashboard/ProviderRankingChart';
+
+// Función para obtener la fecha de inicio (hace 6 meses)
+const getStartDate = () => {
+  const date = new Date();
+  date.setMonth(date.getMonth() - 5);
+  date.setDate(1);
+  return date;
+};
+
 export default function DashboardPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState<Date>(getStartDate());
+  const [endDate, setEndDate] = useState<Date>(new Date());
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const fetchedOrders = await getOrders();
+        setOrders(fetchedOrders);
+      } catch (error) {
+        console.error("Failed to fetch orders:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
+  const filteredOrders = useMemo(() => {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    return orders.filter(order => {
+      const orderDate = order.orderDate.toDate();
+      return orderDate >= start && orderDate <= end;
+    });
+  }, [orders, startDate, endDate]);
+
+  const ordersByMonthData = useMemo(() => getOrdersByMonth(filteredOrders), [filteredOrders]);
+  const revenueByMonthData = useMemo(() => getRevenueByMonth(filteredOrders), [filteredOrders]);
+  const providerRankingData = useMemo(() => getProviderRanking(filteredOrders), [filteredOrders]);
+
+  const formatDateForInput = (date: Date) => date.toISOString().split('T')[0];
+
+  if (loading) {
+    return (
+      <div>
+        <h1 className="text-3xl font-bold mb-6">Dashboard de Métricas</h1>
+        <p>Cargando datos...</p>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      <p>Bienvenido al gestor de pagos. Aquí se mostrarán las métricas y gráficos principales.</p>
-      {/* Gráficos y métricas irán aquí */}
+      <h1 className="text-3xl font-bold mb-6">Dashboard de Métricas</h1>
+
+      <div className="bg-white p-4 rounded-lg shadow mb-6 flex flex-wrap items-center gap-4">
+        <h3 className="text-lg font-semibold w-full sm:w-auto">Filtrar por Fecha</h3>
+        <div className="flex-grow">
+          <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">Desde</label>
+          <input
+            type="date"
+            id="startDate"
+            value={formatDateForInput(startDate)}
+            onChange={(e) => setStartDate(new Date(e.target.value))}
+            className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+          />
+        </div>
+        <div className="flex-grow">
+          <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">Hasta</label>
+          <input
+            type="date"
+            id="endDate"
+            value={formatDateForInput(endDate)}
+            onChange={(e) => setEndDate(new Date(e.target.value))}
+            className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+          />
+        </div>
+      </div>
+
+      {filteredOrders.length === 0 ? (
+        <div className="bg-white p-4 rounded-lg shadow text-center">
+           <p>No hay datos disponibles para el período seleccionado.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <OrdersByMonthChart data={ordersByMonthData} />
+          <RevenueByMonthChart data={revenueByMonthData} />
+          <div className="lg:col-span-2">
+            <ProviderRankingChart data={providerRankingData} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
