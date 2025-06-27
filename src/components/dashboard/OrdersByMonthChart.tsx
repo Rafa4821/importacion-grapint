@@ -3,11 +3,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { MonthlyData } from '@/utils/dashboard-processor';
 
-interface OrdersByMonthChartProps {
-  data: MonthlyData[];
-}
-
-export const OrdersByMonthChart = ({ data }: OrdersByMonthChartProps) => {
+export const OrdersByMonthChart = () => {
   // MODO DEBUG CON DATOS ESTÁTICOS
   const debugData = [
     { month: 'Ene', total: 12 },

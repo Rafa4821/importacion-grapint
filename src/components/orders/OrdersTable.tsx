@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Timestamp } from 'firebase/firestore';
 import { Order } from '@/types';
 import { getProximoVencimiento, VencimientoInfo } from '@/utils/dateUtils';
 import { getMontoPendiente } from '@/utils/orderUtils';
@@ -34,7 +35,7 @@ export default function OrdersTable({ orders, onEdit, onDelete, onInstallmentUpd
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency }).format(amount);
   };
 
-  const formatDate = (date: any) => {
+  const formatDate = (date: Timestamp | null | undefined) => {
     if (date && typeof date.toDate === 'function') {
       return date.toDate().toLocaleDateString('es-CL');
     }

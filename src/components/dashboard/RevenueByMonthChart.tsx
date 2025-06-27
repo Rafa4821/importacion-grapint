@@ -3,13 +3,9 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { MonthlyRevenue } from '@/utils/dashboard-processor';
 
-interface RevenueByMonthChartProps {
-  data: MonthlyRevenue[];
-}
-
 const formatCurrency = (value: number) => new Intl.NumberFormat('es-CL').format(value);
 
-export const RevenueByMonthChart = ({ data }: RevenueByMonthChartProps) => {
+export const RevenueByMonthChart = () => {
   // MODO DEBUG CON DATOS ESTÁTICOS
   const debugData = [
     { month: 'Ene', CLP: 400000, USD: 500 },

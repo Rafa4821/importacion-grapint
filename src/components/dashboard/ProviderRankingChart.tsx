@@ -14,13 +14,9 @@ import {
 } from 'recharts';
 import { ProviderRanking } from '@/utils/dashboard-processor';
 
-interface ProviderRankingChartProps {
-  data: ProviderRanking[];
-}
-
 const formatUSD = (value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 
-export const ProviderRankingChart = ({ data }: ProviderRankingChartProps) => {
+export const ProviderRankingChart = () => {
   // MODO DEBUG CON DATOS ESTÁTICOS
   const debugData: ProviderRanking[] = [
     { providerName: 'Proveedor A', total: 4000 },
