@@ -109,10 +109,10 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <OrdersByMonthChart data={ordersByMonthData} />
-          <RevenueByMonthChart data={revenueByMonthData} />
+          <OrdersByMonthChart />
+          <RevenueByMonthChart />
           <div className="md:col-span-2">
-            <ProviderRankingChart data={providerRankingData} />
+            <ProviderRankingChart />
           </div>
         </div>
       )}
