@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Order } from '@/types';
 import { getOrderById } from '@/services/orderService';
 import { ArrowLeft } from 'lucide-react';
 
-const formatDate = (timestamp: any) => {
+const formatDate = (timestamp: { toDate: () => Date }) => {
   if (!timestamp || !timestamp.toDate) return 'N/A';
   return new Date(timestamp.toDate()).toLocaleDateString('es-CL');
 };
@@ -17,8 +17,7 @@ const formatCurrency = (amount: number, currency: string) => {
 };
 
 export default function OrderDetailPage() {
-  const params = useParams();
-  const router = useRouter();
+    const params = useParams();
   const orderId = params.orderId as string;
 
   const [order, setOrder] = useState<Order | null>(null);

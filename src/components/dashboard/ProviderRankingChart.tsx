@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import { ProviderRanking } from '@/utils/dashboard-processor';
 
@@ -24,7 +25,7 @@ export const ProviderRankingChart = ({ data }: ProviderRankingChartProps) => {
           <Tooltip formatter={(value: number) => formatUSD(value)} />
           <Legend />
           <Bar dataKey="total" fill="#ffc658" name="Monto Total (USD)">
-            <LabelList dataKey="total" position="right" formatter={(value: any) => (typeof value === 'number' ? formatUSD(value) : value)} />
+            <LabelList dataKey="total" position="right" formatter={(value: ReactNode) => (typeof value === 'number' ? formatUSD(value) : value)} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

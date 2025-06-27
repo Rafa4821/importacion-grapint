@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Calendar, dateFnsLocalizer, EventProps, View } from 'react-big-calendar';
+import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import { format } from 'date-fns/format';
 import { parse } from 'date-fns/parse';
 import { startOfWeek } from 'date-fns/startOfWeek';
@@ -9,7 +9,7 @@ import { getDay } from 'date-fns/getDay';
 import { es } from 'date-fns/locale/es';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-import { Order } from '@/types';
+
 import { getOrders } from '@/services/orderService';
 import { OrderEventModal, EventInfo } from '@/components/calendar/OrderEventModal';
 import { CalendarToolbar } from '@/components/calendar/CalendarToolbar';

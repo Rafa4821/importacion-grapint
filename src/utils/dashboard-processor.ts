@@ -1,5 +1,5 @@
 import { Order } from '@/types';
-import { Timestamp } from 'firebase/firestore';
+
 
 // Tipos de datos para los gráficos
 export interface MonthlyData {
