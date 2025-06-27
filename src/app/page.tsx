@@ -54,9 +54,10 @@ export default function DashboardPage() {
     });
   }, [orders, startDate, endDate]);
 
-  const ordersByMonthData = useMemo(() => getOrdersByMonth(filteredOrders), [filteredOrders]);
-  const revenueByMonthData = useMemo(() => getMonthlyRevenue(filteredOrders), [filteredOrders]);
-  const providerRankingData = useMemo(() => getProviderRanking(filteredOrders), [filteredOrders]);
+  // MODO DEBUG: Se desactivan los cálculos de datos para los gráficos, ya que usan datos estáticos.
+  // const ordersByMonthData = useMemo(() => getOrdersByMonth(filteredOrders), [filteredOrders]);
+  // const revenueByMonthData = useMemo(() => getMonthlyRevenue(filteredOrders), [filteredOrders]);
+  // const providerRankingData = useMemo(() => getProviderRanking(filteredOrders), [filteredOrders]);
 
   const formatDateForInput = (date: Date) => date.toISOString().split('T')[0];
 
