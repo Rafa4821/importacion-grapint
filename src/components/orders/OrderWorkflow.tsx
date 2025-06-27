@@ -82,7 +82,7 @@ function Column({ status, orders }: { status: OrderStatus; orders: Order[] }) {
   );
 }
 
-// --- Componente Principal: El tablero Kanban ---
+
 interface OrderWorkflowProps {
   orders: Order[];
   onOrderStatusUpdate: (orderId: string, newStatus: OrderStatus) => Promise<void>;
@@ -155,7 +155,7 @@ export default function OrderWorkflow({ orders, onOrderStatusUpdate }: OrderWork
 
   return (
     <div className="p-4 bg-gray-50">
-                <h2 className="text-2xl font-bold mb-4 text-center">Flujo de Pedidos (Kanban)</h2>
+                
         <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
             <div className="flex space-x-4 overflow-x-auto pb-4">
             {orderStatuses.map(status => (

@@ -26,12 +26,10 @@ export default function KanbanPage() {
     fetchOrders();
   }, []);
 
-  const handleOrderStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
+    const handleOrderStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
     const promise = updateOrderStatus(orderId, newStatus).then(() => {
-      // Optimistically update the local state
-      setOrders(prevOrders =>
-        prevOrders.map(o => (o.id === orderId ? { ...o, status: newStatus } : o))
-      );
+      // After a successful update, refetch all orders to get the updated installments
+      fetchOrders();
     });
 
     toast.promise(promise, {
@@ -42,9 +40,10 @@ export default function KanbanPage() {
   };
 
   return (
-    <div className="container mx-auto p-4">
+        <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Seguimiento de Pedidos</h1>
       {isLoading ? (
-        <p className="text-center text-gray-500">Cargando tablero...</p>
+                <p className="text-center text-gray-500">Cargando seguimiento...</p>
       ) : (
         <OrderWorkflow orders={orders} onOrderStatusUpdate={handleOrderStatusUpdate} />
       )}

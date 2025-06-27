@@ -35,6 +35,8 @@ export const deleteOrder = async (orderId: string): Promise<void> => {
   }
 };
 
+
+
 /**
  * Adds a new order to Firestore after calculating payment installments.
  * @param orderData The raw order data from the form.
@@ -233,15 +235,91 @@ export const getOrderById = async (orderId: string): Promise<Order | null> => {
   }
 };
 
-export const updateOrderStatus = async (orderId: string, status: OrderStatus): Promise<void> => {
+export const updateOrderStatus = async (orderId: string, newStatus: OrderStatus): Promise<void> => {
+  const orderDocRef = doc(db, 'orders', orderId);
+
   try {
-    const orderDocRef = doc(db, 'orders', orderId);
+    const orderSnap = await getDoc(orderDocRef);
+    if (!orderSnap.exists()) {
+      throw new Error('Pedido no encontrado');
+    }
+
+    const order = orderSnap.data() as Order;
+    let updatedInstallments = [...order.installments];
+
+    // Si el estado es 'Primer pago', marca la primera cuota como pagada.
+    if (newStatus === 'Primer pago') {
+      if (updatedInstallments.length > 0 && updatedInstallments[0].status === 'pendiente') {
+        updatedInstallments[0] = { ...updatedInstallments[0], status: 'pagado' };
+      }
+    }
+
+    // Si el estado es 'Pagado', marca todas las cuotas como pagadas.
+    if (newStatus === 'Pagado') {
+      updatedInstallments = updatedInstallments.map(inst => ({ ...inst, status: 'pagado' }));
+    }
+
+    // Determina si el pedido está totalmente pagado
+    const isPaid = newStatus === 'Pagado' || updatedInstallments.every(inst => inst.status === 'pagado');
+
     await updateDoc(orderDocRef, {
-      status: status,
+      status: newStatus,
+      installments: updatedInstallments,
+      isPaid: isPaid,
       updatedAt: serverTimestamp(),
     });
+
   } catch (error) {
     console.error('Error updating order status: ', error);
     throw new Error('Failed to update order status.');
+  }
+};
+
+/**
+ * Updates the status of a specific installment for an order.
+ * @param orderId The ID of the order.
+ * @param installmentIndex The index of the installment to update.
+ * @param newStatus The new status for the installment.
+ */
+export const updateInstallmentStatus = async (
+  orderId: string, 
+  installmentIndex: number,
+  newStatus: 'pagado' | 'pendiente'
+): Promise<void> => {
+  const orderDocRef = doc(db, 'orders', orderId);
+
+  try {
+    const orderSnap = await getDoc(orderDocRef);
+    if (!orderSnap.exists()) {
+      throw new Error('Pedido no encontrado');
+    }
+
+    const order = orderSnap.data() as Order;
+    const updatedInstallments = [...order.installments];
+
+    if (installmentIndex < 0 || installmentIndex >= updatedInstallments.length) {
+      throw new Error('Índice de cuota inválido');
+    }
+
+    // Update the specific installment's status
+    updatedInstallments[installmentIndex] = { 
+      ...updatedInstallments[installmentIndex], 
+      status: newStatus 
+    };
+
+    // Check if all installments are paid to update the main order status
+    const allPaid = updatedInstallments.every(inst => inst.status === 'pagado');
+    const newOrderStatus = allPaid ? 'Pagado' : order.status;
+
+    await updateDoc(orderDocRef, {
+      installments: updatedInstallments,
+      isPaid: allPaid,
+      status: newOrderStatus,
+      updatedAt: serverTimestamp(),
+    });
+
+  } catch (error) {
+    console.error('Error updating installment status: ', error);
+    throw new Error('Failed to update installment status.');
   }
 };

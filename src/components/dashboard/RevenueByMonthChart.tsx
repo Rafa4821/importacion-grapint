@@ -10,11 +10,21 @@ interface RevenueByMonthChartProps {
 const formatCurrency = (value: number) => new Intl.NumberFormat('es-CL').format(value);
 
 export const RevenueByMonthChart = ({ data }: RevenueByMonthChartProps) => {
+  // MODO DEBUG CON DATOS ESTÁTICOS
+  const debugData = [
+    { month: 'Ene', CLP: 400000, USD: 500 },
+    { month: 'Feb', CLP: 300000, USD: 450 },
+    { month: 'Mar', CLP: 200000, USD: 300 },
+    { month: 'Abr', CLP: 278000, USD: 400 },
+    { month: 'May', CLP: 189000, USD: 250 },
+    { month: 'Jun', CLP: 239000, USD: 350 },
+  ];
+
   return (
     <div className="bg-white p-4 rounded-lg shadow">
-      <h3 className="text-lg font-semibold mb-4">Ingresos por Mes (CLP y USD)</h3>
+      <h3 className="text-lg font-semibold mb-4">Ingresos por Mes (MODO DEBUG)</h3>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data}>
+        <BarChart data={debugData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="month" />
           <YAxis tickFormatter={formatCurrency} />
