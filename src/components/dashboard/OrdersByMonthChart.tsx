@@ -1,7 +1,7 @@
 'use client';
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { MonthlyData } from '@/utils/dashboard-processor';
+
 
 export const OrdersByMonthChart = () => {
   // MODO DEBUG CON DATOS ESTÁTICOS

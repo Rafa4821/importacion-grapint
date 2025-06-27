@@ -1,7 +1,7 @@
 'use client';
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { MonthlyRevenue } from '@/utils/dashboard-processor';
+
 
 const formatCurrency = (value: number) => new Intl.NumberFormat('es-CL').format(value);
 
