@@ -30,8 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, message: 'Suscripción eliminada correctamente.' });
 
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Error al eliminar la suscripción:', error);
+        console.error('Error al eliminar la suscripción:', error);
     const errorMessage = error instanceof Error ? error.message : 'Un error desconocido ocurrió';
     return new NextResponse(JSON.stringify({ message: 'Error Interno del Servidor', error: errorMessage }), { status: 500 });
   }

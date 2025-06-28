@@ -4,7 +4,7 @@ import { db } from '@/lib/firebase';
 import { Order } from '@/types';
 import { Resend } from 'resend';
 import { ExpirationNotificationEmail } from '@/components/emails/ExpirationNotificationEmail';
-import webpush from 'web-push';
+import webpush, { PushSubscription } from 'web-push';
 
 // Esta es la función que Vercel llamará según la programación.
 export async function GET(request: Request) {
@@ -19,8 +19,7 @@ export async function GET(request: Request) {
   const recipientsEnv = process.env.NOTIFICATION_EMAIL_RECIPIENT;
 
   if (!recipientsEnv) {
-    // eslint-disable-next-line no-console
-    console.error('Error: La variable de entorno NOTIFICATION_EMAIL_RECIPIENT no está definida.');
+        console.error('Error: La variable de entorno NOTIFICATION_EMAIL_RECIPIENT no está definida.');
     return new NextResponse('Configuración de servidor incompleta', { status: 500 });
   }
 
@@ -35,8 +34,7 @@ export async function GET(request: Request) {
 
   // 3. Lógica principal del cron job
   try {
-    // eslint-disable-next-line no-console
-    console.log('Ejecutando cron job: Verificando vencimientos y enviando correos...');
+    console.log('Cron job iniciado...');
 
     const now = new Date();
     const threeDaysFromNow = new Date();
@@ -92,13 +90,11 @@ export async function GET(request: Request) {
                 throw error;
               }
 
-              // eslint-disable-next-line no-console
-              console.log(`Email enviado exitosamente para pedido #${order.orderNumber}. Email ID: ${data?.id}`);
+                            console.log(`Email enviado exitosamente para pedido #${order.orderNumber}. Email ID: ${data?.id}`);
               results.push({ type: 'email', success: true, orderNumber: order.orderNumber, emailId: data?.id });
 
             } catch (emailError) {
-              // eslint-disable-next-line no-console
-              console.error(`Error al enviar email para pedido #${order.orderNumber}:`, emailError);
+                            console.error(`Error al enviar email para pedido #${order.orderNumber}:`, emailError);
               const errorMessage = emailError instanceof Error ? emailError.message : 'Unknown error';
               results.push({ type: 'email', success: false, orderNumber: order.orderNumber, error: errorMessage });
             }
@@ -112,13 +108,11 @@ export async function GET(request: Request) {
 
             for (const sub of pushSubscriptions) {
               try {
-                await webpush.sendNotification(sub as any, pushPayload);
-                // eslint-disable-next-line no-console
-                console.log(`Notificación push enviada a ${sub.endpoint}`);
+                await webpush.sendNotification(sub as PushSubscription, pushPayload);
+                                console.log(`Notificación push enviada a ${sub.endpoint}`);
                 results.push({ type: 'push', success: true, endpoint: sub.endpoint });
               } catch (pushError) {
-                // eslint-disable-next-line no-console
-                console.error(`Error al enviar push a ${sub.endpoint}:`, pushError);
+                                console.error(`Error al enviar push a ${sub.endpoint}:`, pushError);
                 // Podríamos querer eliminar suscripciones inválidas (error 410 Gone)
                 const errorMessage = pushError instanceof Error ? pushError.message : 'Unknown error';
                 results.push({ type: 'push', success: false, endpoint: sub.endpoint, error: errorMessage });
@@ -130,8 +124,7 @@ export async function GET(request: Request) {
     }
 
     if (results.length === 0) {
-      // eslint-disable-next-line no-console
-      console.log('No se encontraron cuotas para notificar.');
+            console.log('No se encontraron cuotas para notificar.');
     }
 
     return NextResponse.json({ 
