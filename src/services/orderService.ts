@@ -113,6 +113,7 @@ export const addOrder = async (orderData: OrderFormDataForService): Promise<void
 
 
     // 3. Construct the full order object
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { invoiceDate: _originalInvoiceDate, ...restOfOrderData } = orderData;
 
     const newOrder: Omit<Order, 'id'> = {
