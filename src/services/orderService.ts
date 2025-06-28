@@ -113,16 +113,21 @@ export const addOrder = async (orderData: OrderFormDataForService): Promise<void
 
 
     // 3. Construct the full order object
+    const { invoiceDate: originalInvoiceDate, ...restOfOrderData } = orderData;
+
     const newOrder: Omit<Order, 'id'> = {
-      ...orderData,
+      ...restOfOrderData,
       orderDate: Timestamp.fromDate(orderDate),
-      invoiceDate: invoiceDate ? Timestamp.fromDate(invoiceDate) : undefined,
       providerName: provider.companyName, // Denormalize for easy display
       isPaid: false, // Default to not paid
       installments,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
+
+    if (invoiceDate) {
+      newOrder.invoiceDate = Timestamp.fromDate(invoiceDate);
+    }
 
     // 4. Save to Firestore
     await addDoc(collection(db, 'orders'), newOrder);
