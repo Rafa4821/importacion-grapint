@@ -11,6 +11,7 @@ import { getOrders } from '@/services/orderService';
 import { OrdersByMonthChart } from '@/components/dashboard/OrdersByMonthChart';
 import { RevenueByMonthChart } from '@/components/dashboard/RevenueByMonthChart';
 import { ProviderRankingChart } from '@/components/dashboard/ProviderRankingChart';
+import PushNotificationManager from '@/components/notifications/PushNotificationManager';
 
 // Función para obtener la fecha de inicio (hace 6 meses)
 const getStartDate = () => {
@@ -121,6 +122,11 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* --- Gestor de Notificaciones Push --- */}
+      <div className="mt-6">
+        <PushNotificationManager />
+      </div>
     </div>
   );
 }

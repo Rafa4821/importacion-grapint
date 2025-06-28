@@ -4,6 +4,7 @@ import { db } from '@/lib/firebase';
 import { Order } from '@/types';
 import { Resend } from 'resend';
 import { ExpirationNotificationEmail } from '@/components/emails/ExpirationNotificationEmail';
+import webpush from 'web-push';
 
 // Esta es la función que Vercel llamará según la programación.
 export async function GET(request: Request) {
@@ -25,6 +26,13 @@ export async function GET(request: Request) {
 
   const notificationRecipients = recipientsEnv.split(',').map(email => email.trim());
 
+  // 3. Configurar web-push
+  webpush.setVapidDetails(
+    process.env.VAPID_MAILTO || 'mailto:your-email@example.com',
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
+    process.env.VAPID_PRIVATE_KEY || ''
+  );
+
   // 3. Lógica principal del cron job
   try {
     // eslint-disable-next-line no-console
@@ -34,13 +42,17 @@ export async function GET(request: Request) {
     const threeDaysFromNow = new Date();
     threeDaysFromNow.setDate(now.getDate() + 3);
 
+    // 4. Obtener todas las suscripciones de push
+    const subscriptionsSnapshot = await getDocs(collection(db, 'pushSubscriptions'));
+    const pushSubscriptions = subscriptionsSnapshot.docs.map(doc => doc.data());
+
     const ordersRef = collection(db, 'orders');
     const q = query(ordersRef, where('status', '!=', 'Pagado'));
     
     const querySnapshot = await getDocs(q);
     const orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
 
-    const sentEmails = [];
+    const results = [];
 
     // Usamos for...of para poder usar await dentro del bucle
     for (const order of orders) {
@@ -82,20 +94,42 @@ export async function GET(request: Request) {
 
               // eslint-disable-next-line no-console
               console.log(`Email enviado exitosamente para pedido #${order.orderNumber}. Email ID: ${data?.id}`);
-              sentEmails.push({ success: true, orderNumber: order.orderNumber, emailId: data?.id });
+              results.push({ type: 'email', success: true, orderNumber: order.orderNumber, emailId: data?.id });
 
             } catch (emailError) {
               // eslint-disable-next-line no-console
               console.error(`Error al enviar email para pedido #${order.orderNumber}:`, emailError);
               const errorMessage = emailError instanceof Error ? emailError.message : 'Unknown error';
-              sentEmails.push({ success: false, orderNumber: order.orderNumber, error: errorMessage });
+              results.push({ type: 'email', success: false, orderNumber: order.orderNumber, error: errorMessage });
+            }
+
+            // Enviar notificaciones push a todos los suscritos
+            const pushPayload = JSON.stringify({
+              title: subject,
+              body: `La cuota de ${installment.amount.toLocaleString('es-CL')} ${order.currency || 'USD'} para el proveedor ${order.providerName} vence el ${dueDate.toLocaleDateString('es-CL')}`,
+              url: `/orders/${order.id}` // URL a la que se redirigirá al hacer clic
+            });
+
+            for (const sub of pushSubscriptions) {
+              try {
+                await webpush.sendNotification(sub as any, pushPayload);
+                // eslint-disable-next-line no-console
+                console.log(`Notificación push enviada a ${sub.endpoint}`);
+                results.push({ type: 'push', success: true, endpoint: sub.endpoint });
+              } catch (pushError) {
+                // eslint-disable-next-line no-console
+                console.error(`Error al enviar push a ${sub.endpoint}:`, pushError);
+                // Podríamos querer eliminar suscripciones inválidas (error 410 Gone)
+                const errorMessage = pushError instanceof Error ? pushError.message : 'Unknown error';
+                results.push({ type: 'push', success: false, endpoint: sub.endpoint, error: errorMessage });
+              }
             }
           }
         }
       }
     }
 
-    if (sentEmails.length === 0) {
+    if (results.length === 0) {
       // eslint-disable-next-line no-console
       console.log('No se encontraron cuotas para notificar.');
     }
@@ -103,7 +137,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ 
       ok: true, 
       message: 'Cron job completado.',
-      results: sentEmails
+      results: results
     });
 
   } catch (error) {
