@@ -113,7 +113,7 @@ export const addOrder = async (orderData: OrderFormDataForService): Promise<void
 
 
     // 3. Construct the full order object
-    const { invoiceDate: originalInvoiceDate, ...restOfOrderData } = orderData;
+    const { invoiceDate: _originalInvoiceDate, ...restOfOrderData } = orderData;
 
     const newOrder: Omit<Order, 'id'> = {
       ...restOfOrderData,

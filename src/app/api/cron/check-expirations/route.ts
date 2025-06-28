@@ -134,8 +134,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Error catastrófico durante la ejecución del cron job:', error);
+    console.error('Error en el cron job:', error);
     const errorMessage = error instanceof Error ? error.message : 'Un error desconocido ocurrió';
     return new NextResponse(JSON.stringify({ message: 'Error Interno del Servidor', error: errorMessage }), { status: 500 });
   }
