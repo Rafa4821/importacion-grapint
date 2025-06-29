@@ -44,7 +44,9 @@ export async function POST(request: Request) {
       .map(order => {
         try {
           // Cast to `any` to check the .toDate method at runtime, bypassing strict `FieldValue` type
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const createdAtTimestamp = order.createdAt as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const updatedAtTimestamp = order.updatedAt as any;
 
           // Aggressively validate required date fields before processing.
@@ -82,6 +84,7 @@ export async function POST(request: Request) {
           };
 
           // Conditionally add optional properties after validation
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const invoiceDateTimestamp = order.invoiceDate as any;
           if (invoiceDateTimestamp && typeof invoiceDateTimestamp.toDate === 'function') {
             plainOrder.invoiceDate = invoiceDateTimestamp.toDate().toISOString();
