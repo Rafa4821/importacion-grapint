@@ -39,18 +39,46 @@ export async function POST(request: Request) {
     const querySnapshot = await getDocs(q);
     const orders: Order[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
 
-    // 3. Convert orders to a serializable format for the email component
-    const plainOrders: PlainOrder[] = orders.map(order => ({
-      ...order,
-      orderDate: (order.orderDate as Timestamp).toDate().toISOString(),
-      invoiceDate: order.invoiceDate ? (order.invoiceDate as Timestamp).toDate().toISOString() : undefined,
-      createdAt: (order.createdAt as unknown as Timestamp).toDate().toISOString(),
-      updatedAt: (order.updatedAt as unknown as Timestamp).toDate().toISOString(),
-      installments: order.installments ? order.installments.map(i => ({
-        ...i,
-        dueDate: (i.dueDate as Timestamp).toDate().toISOString(),
-      })) : [],
-    }));
+    // 3. Convert orders to a serializable format, skipping any with corrupted data
+    const plainOrders = orders
+      .map(order => {
+        try {
+          // Explicitly build the PlainOrder object to ensure type correctness
+          const plainOrder: PlainOrder = {
+            id: order.id,
+            orderNumber: order.orderNumber,
+            providerId: order.providerId,
+            providerName: order.providerName,
+            orderDate: (order.orderDate as Timestamp).toDate().toISOString(),
+            totalAmount: order.totalAmount,
+            currency: order.currency,
+            status: order.status,
+            isPaid: order.isPaid,
+            createdAt: (order.createdAt as unknown as Timestamp).toDate().toISOString(),
+            updatedAt: (order.updatedAt as unknown as Timestamp).toDate().toISOString(),
+            installments: order.installments
+              ? order.installments.map(i => ({
+                  ...i,
+                  dueDate: (i.dueDate as Timestamp).toDate().toISOString(),
+                }))
+              : [],
+          };
+
+          // Conditionally add optional properties
+          if (order.invoiceDate) {
+            plainOrder.invoiceDate = (order.invoiceDate as Timestamp).toDate().toISOString();
+          }
+          if (order.invoiceNumber) {
+            plainOrder.invoiceNumber = order.invoiceNumber;
+          }
+
+          return plainOrder;
+        } catch (e) {
+          console.error(`Skipping order ${order.id} due to corrupted data.`, e);
+          return null; // Mark order as invalid
+        }
+      })
+      .filter((order): order is PlainOrder => order !== null); // Filter out invalid orders
 
     // 4. Get provider name if selected
     let providerName = 'Todos';
