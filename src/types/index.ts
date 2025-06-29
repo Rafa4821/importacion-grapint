@@ -82,3 +82,16 @@ export interface Alert {
   alertDate: Timestamp;
   type: 'default' | 'custom';
 }
+
+// Serializable versions of types for email components
+export interface PlainPaymentInstallment extends Omit<PaymentInstallment, 'dueDate'> {
+  dueDate: string; // ISO date string
+}
+
+export interface PlainOrder extends Omit<Order, 'orderDate' | 'invoiceDate' | 'installments' | 'createdAt' | 'updatedAt'> {
+  orderDate: string; // ISO date string
+  invoiceDate?: string; // ISO date string
+  installments: PlainPaymentInstallment[];
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+}

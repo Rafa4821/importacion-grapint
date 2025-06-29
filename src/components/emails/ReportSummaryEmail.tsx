@@ -1,26 +1,16 @@
-import { Order } from '@/types';
-import { Timestamp } from 'firebase/firestore';
 import React from 'react';
+import { PlainOrder } from '@/types/index';
 
 interface ReportSummaryEmailProps {
   filters: {
     providerName: string;
     status: string;
+    dateRange: string;
     startDate?: string;
     endDate?: string;
   };
-  orders: Order[];
+  orders: PlainOrder[];
 }
-
-// Función auxiliar para manejar de forma segura la conversión de fechas
-const getSafeDateString = (dateValue: any): string => {
-  if (!dateValue) return 'N/A';
-  if (dateValue instanceof Timestamp) {
-    return dateValue.toDate().toLocaleDateString('es-CL');
-  }
-  // Si ya es un string o un objeto Date
-  return new Date(dateValue).toLocaleDateString('es-CL');
-};
 
 export const ReportSummaryEmail: React.FC<ReportSummaryEmailProps> = ({ filters, orders }) => {
   const formatDate = (dateString: string | undefined) => {
@@ -53,15 +43,18 @@ export const ReportSummaryEmail: React.FC<ReportSummaryEmailProps> = ({ filters,
             </tr>
           </thead>
           <tbody>
-            {orders.map((order) => (
-              <tr key={order.id}>
-                <td style={{ padding: '8px', border: '1px solid #ddd' }}>{order.orderNumber}</td>
-                <td style={{ padding: '8px', border: '1px solid #ddd' }}>{order.providerName}</td>
-                <td style={{ padding: '8px', border: '1px solid #ddd' }}>{order.status}</td>
-                <td style={{ padding: '8px', border: '1px solid #ddd' }}>{getSafeDateString(order.createdAt)}</td>
-                <td style={{ padding: '8px', border: '1px solid #ddd' }}>{order.totalAmount.toLocaleString('es-CL', { style: 'currency', currency: order.currency || 'USD' })}</td>
-              </tr>
-            ))}
+            {orders.map((order) => {
+                            const orderDate = new Date(order.orderDate);
+              return (
+                <tr key={order.id}>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{order.orderNumber}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{order.providerName}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{order.status}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{orderDate.toLocaleDateString('es-CL')}</td>
+                  <td style={{ padding: '8px', border: '1px solid #ddd' }}>{order.totalAmount.toLocaleString('es-CL', { style: 'currency', currency: order.currency || 'USD' })}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       ) : (

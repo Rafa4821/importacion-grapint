@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
-import { Order, Provider } from '@/types';
+import { collection, query, where, getDocs, Timestamp, QueryConstraint, doc, getDoc } from 'firebase/firestore';
+import { Order, PlainOrder, Provider } from '@/types/index';
 import { Resend } from 'resend';
 import { ReportSummaryEmail } from '@/components/emails/ReportSummaryEmail';
 import React from 'react';
@@ -11,14 +11,14 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { providerId, status, startDate, endDate, recipientEmail } = body;
+    const { providerId, status, startDate, endDate, recipientEmail, dateRange } = body;
 
     if (!recipientEmail) {
       return new NextResponse(JSON.stringify({ message: 'El email del destinatario es requerido.' }), { status: 400 });
     }
 
-    // 1. Construir la consulta a Firestore dinámicamente
-    let queries = [];
+    // 1. Build Firestore query
+    const queries: QueryConstraint[] = [];
     if (providerId && providerId !== 'all') {
       queries.push(where('providerId', '==', providerId));
     }
@@ -26,56 +26,69 @@ export async function POST(request: Request) {
       queries.push(where('status', '==', status));
     }
     if (startDate) {
-      queries.push(where('createdAt', '>=', Timestamp.fromDate(new Date(startDate))));
+      queries.push(where('orderDate', '>=', Timestamp.fromDate(new Date(startDate))));
     }
     if (endDate) {
-      // Añadimos 1 día a la fecha final para incluir todo el día
-      const endOfDay = new Date(endDate);
-      endOfDay.setDate(endOfDay.getDate() + 1);
-      queries.push(where('createdAt', '<', Timestamp.fromDate(endOfDay)));
+      queries.push(where('orderDate', '<=', Timestamp.fromDate(new Date(endDate))));
     }
 
     const ordersRef = collection(db, 'orders');
     const q = query(ordersRef, ...queries);
     
-    // 2. Ejecutar la consulta y obtener los pedidos
+    // 2. Execute query and get orders
     const querySnapshot = await getDocs(q);
-    const orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+    const orders: Order[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
 
-    // 3. Obtener el nombre del proveedor si se seleccionó uno
+    // 3. Convert orders to a serializable format for the email component
+    const plainOrders: PlainOrder[] = orders.map(order => ({
+      ...order,
+      orderDate: (order.orderDate as Timestamp).toDate().toISOString(),
+      invoiceDate: order.invoiceDate ? (order.invoiceDate as Timestamp).toDate().toISOString() : undefined,
+      createdAt: (order.createdAt as any).toDate().toISOString(), // Use any for FieldValue
+      updatedAt: (order.updatedAt as any).toDate().toISOString(), // Use any for FieldValue
+      installments: order.installments ? order.installments.map(i => ({
+        ...i,
+        dueDate: (i.dueDate as Timestamp).toDate().toISOString(),
+      })) : [],
+    }));
+
+    // 4. Get provider name if selected
     let providerName = 'Todos';
     if (providerId && providerId !== 'all') {
       const providerDoc = await getDoc(doc(db, 'providers', providerId));
       if (providerDoc.exists()) {
-        providerName = (providerDoc.data() as Provider).companyName;
+        providerName = providerDoc.data().companyName;
       }
     }
 
-    // 4. Preparar y enviar el correo
+    // 5. Prepare and send email
     const filtersForEmail = {
       providerName,
-      status: status === 'all' ? 'Todos' : status,
+      status: status || 'Todos',
+      dateRange: dateRange || 'Todas',
       startDate,
       endDate,
     };
 
     const { data, error } = await resend.emails.send({
-      from: 'Grapint Reportes <onboarding@resend.dev>',
+      from: 'Grapint Notificaciones <onboarding@resend.dev>',
       to: recipientEmail,
-      subject: `Reporte de Pedidos: ${providerName}`,
-      react: React.createElement(ReportSummaryEmail, { filters: filtersForEmail, orders }),
+      subject: `Resumen de Órdenes - ${providerName}`,
+      react: React.createElement(ReportSummaryEmail, {
+        filters: filtersForEmail,
+        orders: plainOrders,
+      }),
     });
 
     if (error) {
-      console.error('Error al enviar email desde Resend:', error);
-      return new NextResponse(JSON.stringify({ message: 'Error al enviar el correo.' }), { status: 500 });
+      console.error({ error });
+      return new NextResponse(JSON.stringify({ message: 'Error al enviar el correo.', error: error }), { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, message: 'Reporte enviado exitosamente.', emailId: data?.id });
+    return new NextResponse(JSON.stringify({ message: 'Resumen enviado con éxito!' }), { status: 200 });
 
   } catch (error) {
-    console.error('Error en la API de reportes:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Un error desconocido ocurrió';
-    return new NextResponse(JSON.stringify({ message: 'Error Interno del Servidor', error: errorMessage }), { status: 500 });
+    console.error('Error in send-summary:', error);
+    return new NextResponse(JSON.stringify({ message: 'Error interno del servidor.' }), { status: 500 });
   }
 }

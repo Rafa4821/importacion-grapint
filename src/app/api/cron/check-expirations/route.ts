@@ -92,7 +92,7 @@ export async function GET(request: Request) {
 
           if (shouldSendEmail) {
             try {
-              const { data, error } = await resend.emails.send({
+              const { error } = await resend.emails.send({
                 from: 'Grapint Notificaciones <onboarding@resend.dev>',
                 to: notificationRecipients,
                 subject: subject,
