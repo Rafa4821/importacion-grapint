@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, orderBy, limit, Timestamp } from 'firebase/firestore';
 
-export async function GET(_request: Request) {
+export async function GET() {
   try {
     // En un futuro, obtendrías el ID del usuario de la sesión de autenticación
     const userId = 'test-user-id';

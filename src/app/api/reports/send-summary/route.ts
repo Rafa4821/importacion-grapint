@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, Timestamp, QueryConstraint, doc, getDoc } from 'firebase/firestore';
-import { Order, PlainOrder, Provider } from '@/types/index';
+import { Order, PlainOrder } from '@/types/index';
 import { Resend } from 'resend';
 import { ReportSummaryEmail } from '@/components/emails/ReportSummaryEmail';
 import React from 'react';
@@ -44,8 +44,8 @@ export async function POST(request: Request) {
       ...order,
       orderDate: (order.orderDate as Timestamp).toDate().toISOString(),
       invoiceDate: order.invoiceDate ? (order.invoiceDate as Timestamp).toDate().toISOString() : undefined,
-      createdAt: (order.createdAt as any).toDate().toISOString(), // Use any for FieldValue
-      updatedAt: (order.updatedAt as any).toDate().toISOString(), // Use any for FieldValue
+      createdAt: (order.createdAt as unknown as Timestamp).toDate().toISOString(),
+      updatedAt: (order.updatedAt as unknown as Timestamp).toDate().toISOString(),
       installments: order.installments ? order.installments.map(i => ({
         ...i,
         dueDate: (i.dueDate as Timestamp).toDate().toISOString(),
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       endDate,
     };
 
-    const { data, error } = await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: 'Grapint Notificaciones <onboarding@resend.dev>',
       to: recipientEmail,
       subject: `Resumen de Órdenes - ${providerName}`,
