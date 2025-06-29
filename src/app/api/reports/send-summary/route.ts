@@ -39,34 +39,52 @@ export async function POST(request: Request) {
     const querySnapshot = await getDocs(q);
     const orders: Order[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
 
-    // 3. Convert orders to a serializable format, skipping any with corrupted data
+    // 3. Convert orders to a serializable format, being extremely defensive.
     const plainOrders = orders
       .map(order => {
         try {
-          // Explicitly build the PlainOrder object to ensure type correctness
+          // Cast to `any` to check the .toDate method at runtime, bypassing strict `FieldValue` type
+          const createdAtTimestamp = order.createdAt as any;
+          const updatedAtTimestamp = order.updatedAt as any;
+
+          // Aggressively validate required date fields before processing.
+          if (!order.orderDate || typeof order.orderDate.toDate !== 'function') {
+            throw new Error('Missing or invalid orderDate');
+          }
+          if (!createdAtTimestamp || typeof createdAtTimestamp.toDate !== 'function') {
+            throw new Error('Missing or invalid createdAt');
+          }
+          if (!updatedAtTimestamp || typeof updatedAtTimestamp.toDate !== 'function') {
+            throw new Error('Missing or invalid updatedAt');
+          }
+
           const plainOrder: PlainOrder = {
             id: order.id,
             orderNumber: order.orderNumber,
             providerId: order.providerId,
             providerName: order.providerName,
-            orderDate: (order.orderDate as Timestamp).toDate().toISOString(),
+            orderDate: order.orderDate.toDate().toISOString(),
             totalAmount: order.totalAmount,
             currency: order.currency,
             status: order.status,
             isPaid: order.isPaid,
-            createdAt: (order.createdAt as unknown as Timestamp).toDate().toISOString(),
-            updatedAt: (order.updatedAt as unknown as Timestamp).toDate().toISOString(),
-            installments: order.installments
-              ? order.installments.map(i => ({
-                  ...i,
-                  dueDate: (i.dueDate as Timestamp).toDate().toISOString(),
-                }))
-              : [],
+            createdAt: createdAtTimestamp.toDate().toISOString(),
+            updatedAt: updatedAtTimestamp.toDate().toISOString(),
+            installments: (order.installments || []).map(i => {
+              if (!i.dueDate || typeof i.dueDate.toDate !== 'function') {
+                throw new Error(`Invalid dueDate in installments for order ${order.id}`);
+              }
+              return {
+                ...i,
+                dueDate: i.dueDate.toDate().toISOString(),
+              };
+            }),
           };
 
-          // Conditionally add optional properties
-          if (order.invoiceDate) {
-            plainOrder.invoiceDate = (order.invoiceDate as Timestamp).toDate().toISOString();
+          // Conditionally add optional properties after validation
+          const invoiceDateTimestamp = order.invoiceDate as any;
+          if (invoiceDateTimestamp && typeof invoiceDateTimestamp.toDate === 'function') {
+            plainOrder.invoiceDate = invoiceDateTimestamp.toDate().toISOString();
           }
           if (order.invoiceNumber) {
             plainOrder.invoiceNumber = order.invoiceNumber;
@@ -74,11 +92,12 @@ export async function POST(request: Request) {
 
           return plainOrder;
         } catch (e) {
-          console.error(`Skipping order ${order.id} due to corrupted data.`, e);
+          const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+          console.error(`Skipping order ${order.id} due to corrupted data. Reason: ${errorMessage}`);
           return null; // Mark order as invalid
         }
       })
-      .filter((order): order is PlainOrder => order !== null); // Filter out invalid orders
+      .filter((order): order is PlainOrder => order !== null);
 
     // 4. Get provider name if selected
     let providerName = 'Todos';
