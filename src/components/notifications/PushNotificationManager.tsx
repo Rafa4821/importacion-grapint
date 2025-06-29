@@ -19,17 +19,46 @@ const PushNotificationManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Cuando el componente se monta, comprobamos si ya existe una suscripción
-    const checkSubscription = async () => {
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        setIsSubscribed(!!subscription);
-      }
+    console.log('PushNotificationManager: Componente montado.');
+
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidPublicKey) {
+      console.error('PushNotificationManager: ¡ERROR CRÍTICO! La clave VAPID pública no está definida. Verifica tu archivo .env.local y reinicia el servidor.');
       setIsLoading(false);
+      return;
+    }
+    console.log('PushNotificationManager: La clave VAPID pública se ha cargado correctamente.');
+
+    const initializePushManager = async () => {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.warn('PushNotificationManager: Las notificaciones push no son soportadas por este navegador.');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        console.log('PushNotificationManager: Registrando el Service Worker...');
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('PushNotificationManager: Service Worker registrado con éxito.', registration);
+
+        console.log('PushNotificationManager: Esperando a que el Service Worker esté listo (ready)...');
+        await navigator.serviceWorker.ready; // Esperamos a que esté activo
+        console.log('PushNotificationManager: Service Worker está listo.');
+
+        console.log('PushNotificationManager: Obteniendo suscripción existente...');
+        const subscription = await registration.pushManager.getSubscription();
+        console.log('PushNotificationManager: Suscripción encontrada:', subscription);
+
+        setIsSubscribed(!!subscription);
+      } catch (error) {
+        console.error('PushNotificationManager: Error durante la inicialización:', error);
+      } finally {
+        console.log('PushNotificationManager: Inicialización finalizada.');
+        setIsLoading(false);
+      }
     };
 
-    checkSubscription();
+    initializePushManager();
   }, []);
 
   const handleSubscriptionChange = async () => {
@@ -71,16 +100,21 @@ const PushNotificationManager: React.FC = () => {
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidPublicKey) {
         console.error('VAPID public key no encontrada.');
+        alert('Error de configuración: No se encontró la clave VAPID pública.');
         setIsLoading(false);
         return;
       }
 
-      const newSubscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      });
+      console.log('PushNotificationManager: Intentando suscribir con la clave pública:', vapidPublicKey);
 
       try {
+        const newSubscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        });
+
+        console.log('PushNotificationManager: Suscripción creada en el navegador:', newSubscription);
+
         await fetch('/api/notifications/subscribe', {
           method: 'POST',
           headers: {
@@ -88,18 +122,16 @@ const PushNotificationManager: React.FC = () => {
           },
           body: JSON.stringify(newSubscription),
         });
+
         console.log('Nueva suscripción guardada en el backend.');
         alert('¡Suscrito a las notificaciones con éxito!');
+        setIsSubscribed(true);
+
       } catch (error) {
-        console.error('Error al guardar la suscripción en el backend:', error);
-        alert('Error al guardar la suscripción. Inténtalo de nuevo.');
-        // Si falla el guardado, revertimos la suscripción en el navegador
-        await newSubscription.unsubscribe();
+        console.error('PushNotificationManager: Falló la suscripción con el push service.', error);
+        alert('Error al suscribirse. Por favor, revisa la consola para más detalles. Asegúrate de que las notificaciones no estén bloqueadas para este sitio en la configuración de tu navegador y que no haya extensiones interfiriendo.');
         setIsSubscribed(false);
-        setIsLoading(false);
-        return;
       }
-      setIsSubscribed(true);
     }
     setIsLoading(false);
   };

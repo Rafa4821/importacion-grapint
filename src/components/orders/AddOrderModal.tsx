@@ -71,11 +71,14 @@ export default function AddOrderModal({ isOpen, onClose, onSave, providers, orde
   if (!isOpen) return null;
 
     const onSubmit: SubmitHandler<ModalFormData> = (data) => {
-    // Transform dates from Date objects to strings before saving
+    // Ensure dates are valid Date objects before transforming to string
+    const orderDateObj = data.orderDate instanceof Date ? data.orderDate : new Date(data.orderDate);
+    const invoiceDateObj = data.invoiceDate ? (data.invoiceDate instanceof Date ? data.invoiceDate : new Date(data.invoiceDate)) : undefined;
+
     const dataForSave: OrderFormData = {
       ...data,
-      orderDate: data.orderDate.toISOString().split('T')[0],
-      invoiceDate: data.invoiceDate ? data.invoiceDate.toISOString().split('T')[0] : undefined,
+      orderDate: orderDateObj.toISOString().split('T')[0],
+      invoiceDate: invoiceDateObj ? invoiceDateObj.toISOString().split('T')[0] : undefined,
     };
     onSave(dataForSave);
     onClose();

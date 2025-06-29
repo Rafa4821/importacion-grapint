@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Truck, ShoppingCart, Calendar, LayoutGrid, X } from 'lucide-react';
+import { Home, Truck, ShoppingCart, Calendar, LayoutGrid, X, Bell } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,9 +14,17 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const pathname = usePathname();
 
   const linkClasses = (path: string) =>
-    `flex items-center p-2 rounded-lg hover:bg-gray-700 transition-colors duration-200 ${
+    `flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 ${
       pathname === path ? 'bg-gray-900' : ''
-    }`;
+    } ${!isOpen ? 'md:justify-center' : ''}`;
+
+  // Clases para controlar el tamaño y la visibilidad en móvil
+  const sidebarContainerClasses = `
+    fixed top-0 left-0 h-full bg-gray-800 text-white flex flex-col z-30
+    transform transition-all duration-300 ease-in-out
+    md:relative md:translate-x-0
+    ${isOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'}
+  `;
 
   return (
     <>
@@ -28,13 +37,11 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       ></div>
 
       {/* Sidebar */}
-      <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-gray-800 text-white p-4 flex flex-col z-30
-                   transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex-shrink-0
-                   ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
-      >
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-bold">Impor-Cami</h2>
+      <aside className={sidebarContainerClasses}>
+        <div className={`flex items-center p-4 mb-6 ${isOpen ? 'justify-between' : 'md:justify-center'}`}>
+          <span className={`text-2xl font-bold whitespace-nowrap transition-opacity ${!isOpen && 'md:hidden'}`}>
+            Impor-Cami
+          </span>
           <button
             onClick={() => setIsOpen(false)}
             className="md:hidden text-gray-400 hover:text-white"
@@ -43,38 +50,16 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
             <X className="h-6 w-6" />
           </button>
         </div>
-        <nav className="flex-grow">
+
+        <nav className="flex-grow px-2">
           <ul>
-            <li className="mb-4">
-              <Link href="/" className={linkClasses('/')} onClick={() => setIsOpen(false)}>
-                <Home className="mr-3 h-5 w-5" />
-                Dashboard
-              </Link>
-            </li>
-            <li className="mb-4">
-              <Link href="/providers" className={linkClasses('/providers')} onClick={() => setIsOpen(false)}>
-                <Truck className="mr-3 h-5 w-5" />
-                Proveedores
-              </Link>
-            </li>
-            <li className="mb-4">
-              <Link href="/orders" className={linkClasses('/orders')} onClick={() => setIsOpen(false)}>
-                <ShoppingCart className="mr-3 h-5 w-5" />
-                Pedidos
-              </Link>
-            </li>
-            <li className="mb-4">
-              <Link href="/kanban" className={linkClasses('/kanban')} onClick={() => setIsOpen(false)}>
-                <LayoutGrid className="mr-3 h-5 w-5" />
-                Seguimiento
-              </Link>
-            </li>
-            <li className="mb-4">
-              <Link href="/calendar" className={linkClasses('/calendar')} onClick={() => setIsOpen(false)}>
-                <Calendar className="mr-3 h-5 w-5" />
-                Calendario
-              </Link>
-            </li>
+            {/* Se añade 'title' para tooltips cuando esté colapsado */}
+            <li><Link href="/" className={linkClasses('/')} title="Dashboard"><Home className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Dashboard</span></Link></li>
+            <li className="mt-2"><Link href="/providers" className={linkClasses('/providers')} title="Proveedores"><Truck className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Proveedores</span></Link></li>
+            <li className="mt-2"><Link href="/notifications" className={linkClasses('/notifications')} title="Notificaciones"><Bell className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Notificaciones</span></Link></li>
+            <li className="mt-2"><Link href="/orders" className={linkClasses('/orders')} title="Pedidos"><ShoppingCart className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Pedidos</span></Link></li>
+            <li className="mt-2"><Link href="/kanban" className={linkClasses('/kanban')} title="Seguimiento"><LayoutGrid className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Seguimiento</span></Link></li>
+            <li className="mt-2"><Link href="/calendar" className={linkClasses('/calendar')} title="Calendario"><Calendar className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Calendario</span></Link></li>
           </ul>
         </nav>
       </aside>
