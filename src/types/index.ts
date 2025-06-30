@@ -47,10 +47,13 @@ export type OrderStatus =
   | 'En tránsito'
   | 'Pagado';
 
+export type ReportOrderStatus = 'pendiente' | 'en_proceso' | 'completada' | 'cancelada';
+
 export interface PaymentInstallment {
   dueDate: Timestamp;
   amount: number;
   status: 'pendiente' | 'pagado';
+  isPaid?: boolean; // Add this to align with usage
 }
 
 export type OrderFormData = Omit<Order, 'id' | 'providerName' | 'isPaid' | 'installments' | 'createdAt' | 'updatedAt' | 'orderDate' | 'invoiceDate'> & {
@@ -88,10 +91,23 @@ export interface PlainPaymentInstallment extends Omit<PaymentInstallment, 'dueDa
   dueDate: string; // ISO date string
 }
 
-export interface PlainOrder extends Omit<Order, 'orderDate' | 'invoiceDate' | 'installments' | 'createdAt' | 'updatedAt'> {
+export interface PlainOrder extends Omit<Order, 'orderDate' | 'invoiceDate' | 'installments' | 'createdAt' | 'updatedAt' | 'status'> {
   orderDate: string; // ISO date string
   invoiceDate?: string; // ISO date string
+  status: ReportOrderStatus;
   installments: PlainPaymentInstallment[];
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
+}
+
+// Configuration for dashboard widgets
+export type ChartType = 'pie' | 'bar' | 'line';
+export type TimeRange = '7d' | '30d' | '90d' | 'all';
+
+export interface WidgetConfig {
+  id: string; // Unique identifier for the widget
+  metric: string;
+  title: string;
+  chartType: ChartType;
+  timeRange?: TimeRange;
 }

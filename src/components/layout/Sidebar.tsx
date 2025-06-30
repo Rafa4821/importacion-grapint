@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Truck, ShoppingCart, Calendar, LayoutGrid, X, Bell } from 'lucide-react';
+import { Truck, ShoppingCart, Calendar, LayoutGrid, X, Bell, FileText } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 
@@ -54,12 +54,14 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
         <nav className="flex-grow px-2">
           <ul>
             {/* Se añade 'title' para tooltips cuando esté colapsado */}
-            <li><Link href="/" className={linkClasses('/')} title="Dashboard"><Home className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Dashboard</span></Link></li>
+            <li><Link href="/" className={linkClasses('/')} title="Central de Reportes"><FileText className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Central de Reportes</span></Link></li>
+            <li className="mt-2"><Link href="/dashboard" className={linkClasses('/dashboard')} title="Dashboard Financiero"><LayoutGrid className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Dashboard Financiero</span></Link></li>
             <li className="mt-2"><Link href="/providers" className={linkClasses('/providers')} title="Proveedores"><Truck className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Proveedores</span></Link></li>
             <li className="mt-2"><Link href="/notifications" className={linkClasses('/notifications')} title="Notificaciones"><Bell className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Notificaciones</span></Link></li>
             <li className="mt-2"><Link href="/orders" className={linkClasses('/orders')} title="Pedidos"><ShoppingCart className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Pedidos</span></Link></li>
             <li className="mt-2"><Link href="/kanban" className={linkClasses('/kanban')} title="Seguimiento"><LayoutGrid className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Seguimiento</span></Link></li>
             <li className="mt-2"><Link href="/calendar" className={linkClasses('/calendar')} title="Calendario"><Calendar className="h-6 w-6 flex-shrink-0" /><span className={`ml-4 ${!isOpen && 'md:hidden'}`}>Calendario</span></Link></li>
+
           </ul>
         </nav>
       </aside>
