@@ -86,7 +86,7 @@ const DashboardPage = () => {
           },
         ]);
         setLayouts({
-          lg: [{ i: 'initial-widget-1', x: 0, y: 0, w: 6, h: 2.5, isDraggable: true, isResizable: true }],
+          lg: [{ i: 'initial-widget-1', x: 0, y: 0, w: 6, h: 2.5, isDraggable: true, isResizable: true, minW: 3, minH: 2 }],
         });
       }
       setIsInitialLoad(false);
@@ -113,7 +113,7 @@ const DashboardPage = () => {
     };
 
     const currentLayout = layouts.lg || [];
-    const newLayoutItem = findNextAvailablePosition(currentLayout, newWidgetId);
+    const newLayoutItem = { ...findNextAvailablePosition(currentLayout, newWidgetId), w: 4, h: 2.5, isDraggable: true, isResizable: true, minW: 3, minH: 2 };
 
     setWidgets([...widgets, newWidget]);
     setLayouts(prev => ({ ...prev, lg: [...(prev.lg || []), newLayoutItem] }));
@@ -221,9 +221,10 @@ const DashboardPage = () => {
           layouts={layouts}
           onLayoutChange={handleLayoutChange}
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+          cols={{ lg: 12, md: 10, sm: 1, xs: 1, xxs: 1 }}
           rowHeight={100}
           draggableHandle=".drag-handle"
+          draggableCancel=".no-drag"
         >
           {widgets.map(widget => (
             <div key={widget.id} className="bg-white rounded-lg shadow-md p-4 flex flex-col">
@@ -295,7 +296,7 @@ const DashboardWidget = ({ config, onOpenSettings, onRemove }: { config: WidgetC
 
   return (
     <>
-      <div className="flex justify-between items-center mb-2">
+      <div className="drag-handle cursor-move flex justify-between items-center mb-2">
         <h2 className="text-lg font-semibold">{config.title}</h2>
         <div className="flex items-center">
           <Tooltip>
@@ -320,7 +321,7 @@ const DashboardWidget = ({ config, onOpenSettings, onRemove }: { config: WidgetC
           </Tooltip>
         </div>
       </div>
-      <div className="flex-grow">
+      <div className="flex-grow overflow-hidden">
         {isLoading ? (
           <Skeleton className="h-full w-full" />
         ) : error ? (

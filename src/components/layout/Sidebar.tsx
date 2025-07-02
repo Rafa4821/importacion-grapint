@@ -20,10 +20,14 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
   // Clases para controlar el tamaño y la visibilidad en móvil
   const sidebarContainerClasses = `
-    fixed top-0 left-0 h-full bg-gray-800 text-white flex flex-col z-30
-    transform transition-all duration-300 ease-in-out
-    md:relative md:translate-x-0
-    ${isOpen ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0'}
+    bg-gray-800 text-white flex flex-col h-full z-40
+    fixed md:static
+    w-64
+    transition-all duration-300 ease-in-out
+    transform
+    ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+    md:w-16 md:translate-x-0
+    ${isOpen && 'md:w-64'}
   `;
 
   return (

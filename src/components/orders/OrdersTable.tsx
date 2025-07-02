@@ -64,99 +64,166 @@ export default function OrdersTable({ orders, onEdit, onDelete, onInstallmentUpd
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="py-2 px-4 border-b text-left">N° Pedido</th>
-            <th className="py-2 px-4 border-b text-left">Proveedor</th>
-            <th className="py-2 px-4 border-b text-left">Fecha Pedido</th>
-            <th className="py-2 px-4 border-b text-left">Monto Total</th>
-            <th className="py-2 px-4 border-b text-left">Monto Pendiente</th>
-            <th className="py-2 px-4 border-b text-left">Estado</th>
-            <th className="py-2 px-4 border-b text-left">Próximo Vencimiento</th>
-            <th className="py-2 px-4 border-b text-left">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {processedOrders.map((order) => (
-            <tr key={order.id} className="hover:bg-gray-50">
-              <td className="py-2 px-4 border-b relative">
-                <button onClick={() => handleTogglePopover(order.id)} className="text-blue-600 hover:underline font-semibold">
+    <div>
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="min-w-full bg-white">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="py-2 px-4 border-b text-left">N° Pedido</th>
+              <th className="py-2 px-4 border-b text-left">Proveedor</th>
+              <th className="py-2 px-4 border-b text-left">Fecha Pedido</th>
+              <th className="py-2 px-4 border-b text-left">Monto Total</th>
+              <th className="py-2 px-4 border-b text-left">Monto Pendiente</th>
+              <th className="py-2 px-4 border-b text-left">Estado</th>
+              <th className="py-2 px-4 border-b text-left">Próximo Vencimiento</th>
+              <th className="py-2 px-4 border-b text-left">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {processedOrders.map((order) => (
+              <tr key={order.id} className="hover:bg-gray-50">
+                <td className="py-2 px-4 border-b relative">
+                  <button onClick={() => handleTogglePopover(order.id)} className="text-blue-600 hover:underline font-semibold">
+                    {order.orderNumber}
+                  </button>
+                  {activePopover === order.id && (
+                    <div className="absolute z-10 -top-4 left-0 w-80 bg-white border border-gray-200 rounded-lg shadow-xl p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-bold">Detalle de Pagos</h4>
+                        <button onClick={() => setActivePopover(null)} className="text-gray-500 hover:text-gray-800">
+                          <X size={20} />
+                        </button>
+                      </div>
+                      <ul>
+                        {order.installments.map((inst, index) => (
+                          <li key={index} className="flex justify-between items-center py-1 border-b last:border-b-0">
+                            <div>
+                              <p className="font-semibold">{formatCurrency(inst.amount, order.currency)}</p>
+                              <p className="text-sm text-gray-500">Vence: {formatDate(inst.dueDate)}</p>
+                            </div>
+                            {inst.status === 'pendiente' ? (
+                              <button 
+                                onClick={() => handleMarkAsPaid(order.id, index)}
+                                className="bg-blue-500 text-white text-xs font-bold py-1 px-2 rounded hover:bg-blue-600"
+                              >
+                                Pagar
+                              </button>
+                            ) : (
+                              <span className="text-green-600 font-semibold text-sm">Pagado</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </td>
+                <td className="py-2 px-4 border-b">{order.providerName}</td>
+                <td className="py-2 px-4 border-b">{formatDate(order.orderDate)}</td>
+                <td className="py-2 px-4 border-b">{formatCurrency(order.totalAmount, order.currency)}</td>
+                <td className="py-2 px-4 border-b font-bold">{formatCurrency(order.montoPendiente, order.currency)}</td>
+                <td className="py-2 px-4 border-b">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'Pagado' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {order.status.replace(/_/g, ' ')}
+                  </span>
+                </td>
+                <td className="py-2 px-4 border-b">
+                  {order.vencimientoInfo.fecha ? (
+                    <div className="flex items-center">
+                      <span className={`h-3 w-3 rounded-full mr-2 ${criticalityClasses[order.vencimientoInfo.criticidad]}`}></span>
+                      {order.vencimientoInfo.fecha.toLocaleDateString('es-CL')}
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">N/A</span>
+                  )}
+                </td>
+                <td className="py-2 px-4 border-b">
+                  <button onClick={() => onEdit(order)} className="text-blue-500 hover:text-blue-700 mr-2"><Edit size={20} /></button>
+                  <button onClick={() => { if (window.confirm(`¿Estás seguro de que quieres eliminar el pedido ${order.orderNumber}?`)) { onDelete(order.id); } }} className="text-red-500 hover:text-red-700"><Trash2 size={20} /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="block md:hidden space-y-4">
+        {processedOrders.map((order) => (
+          <div key={order.id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm text-gray-500">Pedido</p>
+                <button onClick={() => handleTogglePopover(order.id)} className="text-lg font-bold text-blue-600 hover:underline">
                   {order.orderNumber}
                 </button>
-                {activePopover === order.id && (
-                  <div className="absolute z-10 -top-4 left-0 w-80 bg-white border border-gray-200 rounded-lg shadow-xl p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-bold">Detalle de Pagos</h4>
-                      <button onClick={() => setActivePopover(null)} className="text-gray-500 hover:text-gray-800">
-                        <X size={20} />
-                      </button>
-                    </div>
-                    <ul>
-                      {order.installments.map((inst, index) => (
-                        <li key={index} className="flex justify-between items-center py-1 border-b last:border-b-0">
-                          <div>
-                            <p className="font-semibold">{formatCurrency(inst.amount, order.currency)}</p>
-                            <p className="text-sm text-gray-500">Vence: {formatDate(inst.dueDate)}</p>
-                          </div>
-                          {inst.status === 'pendiente' ? (
-                            <button 
-                              onClick={() => handleMarkAsPaid(order.id, index)}
-                              className="bg-blue-500 text-white text-xs font-bold py-1 px-2 rounded hover:bg-blue-600"
-                            >
-                              Pagar
-                            </button>
-                          ) : (
-                            <span className="text-green-600 font-semibold text-sm">Pagado</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button onClick={() => onEdit(order)} className="text-blue-500 hover:text-blue-700"><Edit size={20} /></button>
+                <button onClick={() => { if (window.confirm(`¿Estás seguro de que quieres eliminar el pedido ${order.orderNumber}?`)) { onDelete(order.id); } }} className="text-red-500 hover:text-red-700"><Trash2 size={20} /></button>
+              </div>
+            </div>
+            {activePopover === order.id && (
+              <div className="mt-2 w-full bg-gray-50 border border-gray-200 rounded-lg shadow-lg p-3">
+                 <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-bold">Detalle de Pagos</h4>
+                    <button onClick={() => setActivePopover(null)} className="text-gray-500 hover:text-gray-800"><X size={20} /></button>
                   </div>
-                )}
-              </td>
-              <td className="py-2 px-4 border-b">{order.providerName}</td>
-              <td className="py-2 px-4 border-b">{formatDate(order.orderDate)}</td>
-              <td className="py-2 px-4 border-b">{formatCurrency(order.totalAmount, order.currency)}</td>
-              <td className="py-2 px-4 border-b font-bold">{formatCurrency(order.montoPendiente, order.currency)}</td>
-              <td className="py-2 px-4 border-b">
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'Pagado' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                  {order.status.replace(/_/g, ' ')}
-                </span>
-              </td>
-              <td className="py-2 px-4 border-b">
-                {order.vencimientoInfo.fecha ? (
-                  <div className="flex items-center">
-                    <span className={`h-3 w-3 rounded-full mr-2 ${criticalityClasses[order.vencimientoInfo.criticidad]}`}></span>
-                    {order.vencimientoInfo.fecha.toLocaleDateString('es-CL')}
-                  </div>
-                ) : (
-                  <span className="text-gray-500">N/A</span>
-                )}
-              </td>
-              <td className="py-2 px-4 border-b">
-                <button 
-                  onClick={() => onEdit(order)}
-                  className="text-blue-500 hover:text-blue-700 mr-2"
-                >
-                  <Edit size={20} />
-                </button>
-                <button 
-                  onClick={() => {
-                    if (window.confirm(`¿Estás seguro de que quieres eliminar el pedido ${order.orderNumber}?`)) {
-                      onDelete(order.id);
-                    }
-                  }}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <Trash2 size={20} />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  <ul>
+                    {order.installments.map((inst, index) => (
+                      <li key={index} className="flex justify-between items-center py-1 border-b last:border-b-0">
+                        <div>
+                          <p className="font-semibold">{formatCurrency(inst.amount, order.currency)}</p>
+                          <p className="text-sm text-gray-500">Vence: {formatDate(inst.dueDate)}</p>
+                        </div>
+                        {inst.status === 'pendiente' ? (
+                          <button onClick={() => handleMarkAsPaid(order.id, index)} className="bg-blue-500 text-white text-xs font-bold py-1 px-2 rounded hover:bg-blue-600">Pagar</button>
+                        ) : (
+                          <span className="text-green-600 font-semibold text-sm">Pagado</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+              </div>
+            )}
+            <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500">Proveedor</p>
+                <p className="font-semibold">{order.providerName}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Fecha</p>
+                <p className="font-semibold">{formatDate(order.orderDate)}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Monto Total</p>
+                <p className="font-semibold">{formatCurrency(order.totalAmount, order.currency)}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Pendiente</p>
+                <p className="font-bold">{formatCurrency(order.montoPendiente, order.currency)}</p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-gray-500 text-sm">Estado</p>
+              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'Pagado' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                {order.status.replace(/_/g, ' ')}
+              </span>
+            </div>
+            <div className="mt-2">
+              <p className="text-gray-500 text-sm">Próximo Vencimiento</p>
+              {order.vencimientoInfo.fecha ? (
+                <div className="flex items-center">
+                  <span className={`h-3 w-3 rounded-full mr-2 ${criticalityClasses[order.vencimientoInfo.criticidad]}`}></span>
+                  {order.vencimientoInfo.fecha.toLocaleDateString('es-CL')}
+                </div>
+              ) : (
+                <span className="text-gray-500">N/A</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

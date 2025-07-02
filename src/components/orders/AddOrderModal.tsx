@@ -86,8 +86,8 @@ export default function AddOrderModal({ isOpen, onClose, onSave, providers, orde
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">{orderToEdit ? 'Editar Pedido' : 'Añadir Pedido'}</h2>
           <button onClick={onClose}><X size={24} /></button>
