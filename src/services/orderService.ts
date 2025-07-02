@@ -43,7 +43,7 @@ export const deleteOrder = async (orderId: string): Promise<void> => {
  */
 export type OrderFormDataForService = Omit<OrderFormData, 'orderDate' | 'invoiceDate'> & {
   orderDate: Date;
-  invoiceDate?: Date;
+  invoiceDate?: Date | null;
 };
 
 export const addOrder = async (orderData: OrderFormDataForService): Promise<void> => {
@@ -61,7 +61,7 @@ export const addOrder = async (orderData: OrderFormDataForService): Promise<void
     // 2. Calculate installments based on payment terms
     const installments: PaymentInstallment[] = [];
     const orderDate = new Date(orderData.orderDate);
-    const invoiceDate = orderData.invoiceDate ? new Date(orderData.invoiceDate) : undefined;
+    const invoiceDate = orderData.invoiceDate ? new Date(orderData.invoiceDate) : null;
 
     const paymentTerms = provider.paymentTerms;
     if (paymentTerms.type === 'contado') {
@@ -161,7 +161,7 @@ export const updateOrder = async (orderId: string, orderData: OrderFormDataForSe
     // 2. Recalculate installments based on payment terms
     const installments: PaymentInstallment[] = [];
     const orderDate = new Date(orderData.orderDate);
-    const invoiceDate = orderData.invoiceDate ? new Date(orderData.invoiceDate) : undefined;
+    const invoiceDate = orderData.invoiceDate ? new Date(orderData.invoiceDate) : null;
 
     // Sanitize payment terms to ensure numeric values for calculations
     let paymentTerms: PaymentTerms;
@@ -206,7 +206,7 @@ export const updateOrder = async (orderId: string, orderData: OrderFormDataForSe
     const orderToUpdate = {
       ...orderData,
       orderDate: Timestamp.fromDate(orderDate),
-      invoiceDate: invoiceDate ? Timestamp.fromDate(invoiceDate) : undefined,
+      invoiceDate: invoiceDate ? Timestamp.fromDate(invoiceDate) : null,
       providerName: provider.companyName,
       installments,
       updatedAt: serverTimestamp(),

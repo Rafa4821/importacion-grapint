@@ -81,8 +81,16 @@ function Column({ status, orders }: { status: OrderStatus; orders: Order[] }) {
   const { setNodeRef } = useDroppable({ id: status });
 
   return (
-    <Paper ref={setNodeRef} sx={{ p: 2, width: 280, flexShrink: 0, backgroundColor: 'grey.100' }}>
-      <Typography variant="h6" align="center" gutterBottom>{status}</Typography>
+    <Paper 
+      ref={setNodeRef} 
+      sx={{ 
+        p: 2, 
+        width: 280, 
+        flexShrink: 0, 
+        bgcolor: 'background.default' 
+      }}
+    >
+      <Typography variant="h6" align="center" gutterBottom sx={{ color: 'text.secondary' }}>{status}</Typography>
       <SortableContext items={orders.map(o => o.id)}>
         <Box sx={{ minHeight: 100 }}>
           {orders.map(order => (
@@ -154,7 +162,7 @@ export default function OrderWorkflow({ orders, onOrderStatusUpdate }: OrderWork
   };
 
   return (
-    <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
+    <Box sx={{ p: 2, bgcolor: 'background.paper' }}>
       <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
         <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2 }}>
           {orderStatuses.map(status => (

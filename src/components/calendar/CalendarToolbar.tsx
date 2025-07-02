@@ -32,7 +32,7 @@ export const CalendarToolbar = ({ label, onNavigate, onView, view }: CustomToolb
         justifyContent: 'space-between',
         p: 2,
         mb: 2,
-        bgcolor: 'grey.100',
+        bgcolor: 'background.paper',
         borderRadius: 1,
       }}
     >

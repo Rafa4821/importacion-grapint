@@ -14,7 +14,7 @@ interface OrdersTableProps {
   orders: Order[];
   onEdit: (order: Order) => void;
   onDelete: (orderId: string) => void;
-  onInstallmentUpdate: (orderId: string, installmentIndex: number) => Promise<void>;
+  onInstallmentUpdate: (orderId: string, installmentIndex: number, newStatus: 'pagado' | 'pendiente') => Promise<void>;
 }
 
 export default function OrdersTable({ orders, onEdit, onDelete, onInstallmentUpdate }: OrdersTableProps) {
@@ -48,10 +48,11 @@ export default function OrdersTable({ orders, onEdit, onDelete, onInstallmentUpd
     setActiveOrder(null);
   };
 
-  const handleMarkAsPaid = async (orderId: string, installmentIndex: number) => {
+  const handleToggleInstallmentStatus = async (orderId: string, installmentIndex: number, currentStatus: 'pagado' | 'pendiente') => {
+    const newStatus = currentStatus === 'pagado' ? 'pendiente' : 'pagado';
     try {
-      await onInstallmentUpdate(orderId, installmentIndex);
-      handlePopoverClose();
+      await onInstallmentUpdate(orderId, installmentIndex, newStatus);
+      handlePopoverClose(); // Cierra el popover después de la acción
     } catch (error) {
       console.error("Failed to update installment status", error);
     }
@@ -102,11 +103,14 @@ export default function OrdersTable({ orders, onEdit, onDelete, onInstallmentUpd
               <Typography variant="body1" fontWeight="bold">{formatCurrency(inst.amount, activeOrder.currency)}</Typography>
               <Typography variant="caption" color="text.secondary">Vence: {formatDate(inst.dueDate)}</Typography>
             </Box>
-            {inst.status === 'pendiente' ? (
-              <Button size="small" variant="contained" onClick={() => handleMarkAsPaid(activeOrder.id, index)}>Pagar</Button>
-            ) : (
-              <Chip label="Pagado" color="success" size="small" />
-            )}
+            <Button 
+              size="small" 
+              variant="contained" 
+              color={inst.status === 'pagado' ? 'inherit' : 'success'}
+              onClick={() => handleToggleInstallmentStatus(activeOrder.id, index, inst.status)}
+            >
+              {inst.status === 'pagado' ? 'Marcar Pendiente' : 'Marcar Pagada'}
+            </Button>
           </Box>
         ))}
       </Box>

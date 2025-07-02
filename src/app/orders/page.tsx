@@ -67,7 +67,7 @@ export default function OrdersPage() {
     const dataForService: OrderFormDataForService = {
       ...data,
       orderDate: new Date(data.orderDate),
-      invoiceDate: data.invoiceDate ? new Date(data.invoiceDate) : undefined,
+      invoiceDate: data.invoiceDate ? new Date(data.invoiceDate) : null,
     };
 
     const promise = isEditing
@@ -86,14 +86,16 @@ export default function OrdersPage() {
     });
   };
 
-  const handleInstallmentUpdate = async (orderId: string, installmentIndex: number) => {
+  const handleInstallmentUpdate = async (orderId: string, installmentIndex: number, newStatus: 'pagado' | 'pendiente') => {
+    const actionText = newStatus === 'pagado' ? 'pagada' : 'pendiente';
+
     await toast.promise(
-      updateInstallmentStatus(orderId, installmentIndex, 'pagado'),
+      updateInstallmentStatus(orderId, installmentIndex, newStatus),
       {
         loading: 'Actualizando estado del pago...',
         success: () => {
-          fetchAllData(); // Refresh data to show updated pending amount
-          return '¡Cuota marcada como pagada!';
+          fetchAllData(); // Refresh data to show updated status
+          return `¡Cuota marcada como ${actionText}!`;
         },
         error: 'Error al actualizar la cuota.',
       }

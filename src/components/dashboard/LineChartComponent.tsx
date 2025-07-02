@@ -1,19 +1,21 @@
 'use client';
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Theme } from '@mui/material/styles';
 
 interface ChartData {
   name: string;
   value: number;
 }
 
-interface LineChartProps {
+export interface LineChartProps {
   data: ChartData[];
+  theme: Theme;
 }
 
-export function LineChartComponent({ data }: LineChartProps) {
+export function LineChartComponent({ data, theme }: LineChartProps) {
   if (!data || data.length === 0) {
-    return <div className="flex items-center justify-center h-full text-gray-500">No hay datos para mostrar.</div>;
+    return <div style={{ color: theme.palette.text.secondary, textAlign: 'center', paddingTop: '20px' }}>No hay datos para mostrar.</div>;
   }
 
   return (
@@ -27,12 +29,19 @@ export function LineChartComponent({ data }: LineChartProps) {
           bottom: 5,
         }}
       >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" />
-        <YAxis />
-        <Tooltip />
-        <Legend />
-        <Line type="monotone" dataKey="value" stroke="#8884d8" activeDot={{ r: 8 }} name="Valor" />
+        <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+        <XAxis dataKey="name" stroke={theme.palette.text.secondary} tick={{ fill: theme.palette.text.secondary }} />
+        <YAxis stroke={theme.palette.text.secondary} tick={{ fill: theme.palette.text.secondary }} />
+        <Tooltip 
+          contentStyle={{ 
+            backgroundColor: theme.palette.background.paper,
+            borderColor: theme.palette.divider,
+            color: theme.palette.text.primary 
+          }}
+          formatter={(value: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(value)}
+        />
+        <Legend wrapperStyle={{ color: theme.palette.text.secondary }} />
+        <Line type="monotone" dataKey="value" stroke={theme.palette.primary.main} activeDot={{ r: 8 }} name="Valor" />
       </LineChart>
     </ResponsiveContainer>
   );

@@ -26,7 +26,10 @@ import {
   Close as XIcon,
   Notifications as BellIcon,
   Article as FileTextIcon,
+  Brightness4 as Brightness4Icon,
+  Brightness7 as Brightness7Icon,
 } from '@mui/icons-material';
+import { ColorModeContext } from '../ThemeRegistry/ThemeRegistry';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -48,36 +51,67 @@ const navItems = [
 const Sidebar = ({ isOpen, setIsOpen, drawerWidth, collapsedDrawerWidth }: SidebarProps) => {
   const pathname = usePathname();
   const theme = useTheme();
+  const colorMode = React.useContext(ColorModeContext);
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const DrawerContent = (
-    <div>
-      <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: [1] }}>
-        {isOpen && (
-           <Typography variant="h6" noWrap component="div" sx={{ ml: 1 }}>
-             Impor-Cami
-           </Typography>
-        )}
-        {isMobile && (
-          <IconButton onClick={() => setIsOpen(false)}>
-            <XIcon />
-          </IconButton>
-        )}
-      </Toolbar>
-      <List>
-        {navItems.map((item) => (
-          <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
-            <Tooltip title={item.text} placement="right" disableHoverListener={isOpen}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Box>
+        <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: [1] }}>
+          {isOpen && (
+            <Typography variant="h6" noWrap component="div" sx={{ ml: 1 }}>
+              Impor-Cami
+            </Typography>
+          )}
+          {isMobile && (
+            <IconButton onClick={() => setIsOpen(false)}>
+              <XIcon />
+            </IconButton>
+          )}
+        </Toolbar>
+        <List>
+          {navItems.map((item) => (
+            <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
+              <Tooltip title={item.text} placement="right" disableHoverListener={isOpen}>
+                <ListItemButton
+                  component={Link}
+                  href={item.href}
+                  selected={pathname === item.href}
+                  sx={{
+                    minHeight: 48,
+                    justifyContent: isOpen ? 'initial' : 'center',
+                    px: 2.5,
+                  }}
+                  onClick={() => isMobile && setIsOpen(false)}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: isOpen ? 3 : 'auto',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={item.text} sx={{ opacity: isOpen ? 1 : 0 }} />
+                </ListItemButton>
+              </Tooltip>
+            </ListItem>
+          ))}
+        </List>
+      </Box>
+
+      <Box sx={{ marginTop: 'auto' }}>
+        <List>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <Tooltip title={theme.palette.mode === 'dark' ? 'Modo Claro' : 'Modo Oscuro'} placement="right" disableHoverListener={isOpen}>
               <ListItemButton
-                component={Link}
-                href={item.href}
-                selected={pathname === item.href}
+                onClick={colorMode.toggleColorMode}
                 sx={{
                   minHeight: 48,
                   justifyContent: isOpen ? 'initial' : 'center',
                   px: 2.5,
                 }}
-                onClick={() => isMobile && setIsOpen(false)}
               >
                 <ListItemIcon
                   sx={{
@@ -86,15 +120,15 @@ const Sidebar = ({ isOpen, setIsOpen, drawerWidth, collapsedDrawerWidth }: Sideb
                     justifyContent: 'center',
                   }}
                 >
-                  {item.icon}
+                  {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
                 </ListItemIcon>
-                <ListItemText primary={item.text} sx={{ opacity: isOpen ? 1 : 0 }} />
+                <ListItemText primary={theme.palette.mode === 'dark' ? 'Modo Claro' : 'Modo Oscuro'} sx={{ opacity: isOpen ? 1 : 0 }} />
               </ListItemButton>
             </Tooltip>
           </ListItem>
-        ))}
-      </List>
-    </div>
+        </List>
+      </Box>
+    </Box>
   );
 
   return (

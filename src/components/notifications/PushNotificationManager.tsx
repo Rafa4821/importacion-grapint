@@ -93,8 +93,12 @@ const PushNotificationManager: React.FC = () => {
         setIsSubscribed(true);
       }
     } catch (err) {
-      setError('Ocurrió un error al gestionar la suscripción.');
-      console.error(err);
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Falló el registro: el servicio de notificaciones push devolvió un error. Esto suele deberse a una clave VAPID incorrecta o mal configurada.');
+      } else {
+        setError('Ocurrió un error al gestionar la suscripción.');
+      }
+      console.error('Error al gestionar la suscripción:', err);
     } finally {
       setIsLoading(false);
     }

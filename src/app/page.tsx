@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import ReportCharts from '@/components/reports/ReportCharts'; 
+import SendEmailModal from '@/components/reports/SendEmailModal';
 import {
   Container, Typography, Paper, FormControl, InputLabel, Select, MenuItem, Button, Box, Stack, Tooltip, CircularProgress,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, SelectChangeEvent
@@ -25,6 +26,7 @@ const ReportsPage = () => {
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [reportData, setReportData] = useState<PlainOrder[] | null>(null);
+  const [isEmailModalOpen, setEmailModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchProviders = async () => {
@@ -109,20 +111,28 @@ const ReportsPage = () => {
     XLSX.writeFile(workbook, "reporte.xlsx");
   };
   
-  const handleSendEmail = async () => {
+  const handleSendEmail = () => {
     if (!reportData) {
       toast.error('Primero debes generar un reporte.');
       return;
     }
+    setEmailModalOpen(true);
+  };
+
+  const handleConfirmSendEmail = async (email: string) => {
+    if (!reportData) return; // Should not happen, but as a safeguard
+
     const toastId = toast.loading('Enviando correo...');
     try {
-      const response = await fetch('/api/reports/email', {
+      const response = await fetch('/api/reports/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reportData }),
+        body: JSON.stringify({ reportData, email }),
       });
+
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Error al enviar el correo.');
+
       toast.success('Correo enviado exitosamente.', { id: toastId });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
@@ -164,8 +174,14 @@ const ReportsPage = () => {
           </Box>
         </Paper>
 
+        <SendEmailModal
+          isOpen={isEmailModalOpen}
+          onClose={() => setEmailModalOpen(false)}
+          onSend={handleConfirmSendEmail}
+        />
+
         {reportData && (
-          <Paper sx={{ p: 3 }}>
+          <Paper elevation={3} sx={{ p: 2, mt: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h5" component="h2">Resultados del Reporte</Typography>
               {reportData.length > 0 && (

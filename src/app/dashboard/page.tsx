@@ -11,7 +11,7 @@ import { LineChartComponent } from '@/components/dashboard/LineChartComponent';
 import ExpensesByProviderChart from '@/components/dashboard/ExpensesByProviderChart';
 import { WidgetSettings } from '@/components/dashboard/WidgetSettings';
 import { WidgetConfig } from '@/types';
-import { Button, IconButton, Paper, Box, Typography, Skeleton, Tooltip } from '@mui/material';
+import { Button, IconButton, Paper, Box, Typography, Skeleton, Tooltip, useTheme } from '@mui/material';
 import { Settings, Delete, Add, Dashboard as DashboardIcon } from '@mui/icons-material';
 
 // Import styles for react-grid-layout
@@ -61,6 +61,7 @@ const DashboardPage = () => {
     loadDashboardState();
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const saveState = useCallback(
     debounce(async (currentWidgets: WidgetConfig[], currentLayouts: Layouts) => {
       try {
@@ -180,14 +181,32 @@ const DashboardPage = () => {
           draggableCancel=".no-drag"
         >
           {widgets.map(widget => (
-            <Paper key={widget.id} elevation={2} sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+            <Paper 
+              key={widget.id} 
+              elevation={2} 
+              sx={{ 
+                p: 2, 
+                display: 'flex', 
+                flexDirection: 'column',
+                backgroundColor: 'background.paper' // Theme-aware background
+              }}
+            >
               <DashboardWidget config={widget} onOpenSettings={openSettingsModal} onRemove={removeWidget} />
             </Paper>
           ))}
         </ResponsiveGridLayoutWithWidth>
       ) : (
-        <Paper sx={{ textAlign: 'center', p: { xs: 4, md: 8 }, border: '2px dashed', borderColor: 'grey.300' }}>
-          <DashboardIcon sx={{ mx: 'auto', fontSize: 48, color: 'grey.400' }} />
+        <Paper 
+          sx={{
+            textAlign: 'center', 
+            p: { xs: 4, md: 8 }, 
+            border: '2px dashed', 
+            borderColor: 'divider', // Theme-aware border color
+            backgroundColor: 'transparent', // Make it blend with the background
+            boxShadow: 'none'
+          }}
+        >
+          <DashboardIcon sx={{ mx: 'auto', fontSize: 48, color: 'text.secondary' }} />
           <Typography variant="h6" component="h3" sx={{ mt: 2 }}>Dashboard Vacío</Typography>
           <Typography sx={{ mt: 1, color: 'text.secondary' }}>
             Comienza añadiendo un widget desde el botón de arriba.
@@ -211,6 +230,7 @@ const DashboardWidget = ({ config, onOpenSettings, onRemove }: { config: WidgetC
   const [data, setData] = useState<ChartData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const theme = useTheme(); // Access theme for dynamic colors
 
   useEffect(() => {
     const fetchData = async () => {
@@ -238,36 +258,36 @@ const DashboardWidget = ({ config, onOpenSettings, onRemove }: { config: WidgetC
   const renderChart = () => {
     switch (config.chartType) {
       case 'pie':
-        return <ExpensesByProviderChart data={data} />;
+        return <ExpensesByProviderChart data={data} theme={theme} />;
       case 'bar':
-        return <BarChartComponent data={data} />;
+        return <BarChartComponent data={data} theme={theme} />;
       case 'line':
-        return <LineChartComponent data={data} />;
+        return <LineChartComponent data={data} theme={theme} />;
       default:
         return <Typography sx={{ textAlign: 'center' }}>Tipo de gráfico no soportado</Typography>;
     }
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', color: 'text.primary' }}>
       <Box className="drag-handle" sx={{ cursor: 'move', display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>{config.title}</Typography>
+        <Typography variant="h6" component="h2">{config.title}</Typography>
         <Box className="no-drag">
           <Tooltip title="Configurar Widget">
-            <IconButton size="small" onClick={() => onOpenSettings(config.id)}>
+            <IconButton size="small" onClick={() => onOpenSettings(config.id)} sx={{ color: 'text.secondary' }}>
               <Settings fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Eliminar Widget">
-            <IconButton size="small" onClick={() => onRemove(config.id)}>
-              <Delete fontSize="small" sx={{ color: 'error.main' }} />
+            <IconButton size="small" onClick={() => onRemove(config.id)} sx={{ color: 'error.main' }}>
+              <Delete fontSize="small" />
             </IconButton>
           </Tooltip>
         </Box>
       </Box>
       <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
         {isLoading ? (
-          <Skeleton variant="rectangular" width="100%" height="100%" />
+          <Skeleton variant="rectangular" width="100%" height="100%" sx={{ backgroundColor: 'background.default' }} />
         ) : error ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'error.main' }}>
             <Typography>{error}</Typography>

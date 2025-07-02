@@ -113,7 +113,10 @@ export default function AddOrderModal({ isOpen, onClose, onSave, providers, orde
         {orderToEdit ? 'Editar Pedido' : 'Añadir Pedido'}
         <IconButton
           aria-label="close"
-          onClick={onClose}
+          onClick={(e) => {
+            (e.currentTarget as HTMLElement).blur();
+            onClose();
+          }}
           sx={{
             position: 'absolute',
             right: 8,
@@ -249,7 +252,10 @@ export default function AddOrderModal({ isOpen, onClose, onSave, providers, orde
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: '16px 24px' }}>
-          <Button onClick={onClose}>Cancelar</Button>
+          <Button onClick={(e) => {
+            (e.currentTarget as HTMLElement).blur();
+            onClose();
+          }}>Cancelar</Button>
           <Button type="submit" variant="contained">Guardar</Button>
         </DialogActions>
       </form>

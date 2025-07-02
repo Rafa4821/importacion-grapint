@@ -11,7 +11,7 @@ import { OrderEventModal } from '@/components/calendar/OrderEventModal';
 import { getOrders } from '@/services/orderService';
 import { Order, PaymentInstallment } from '@/types';
 import { EventInfo } from '@/components/calendar/OrderEventModal';
-import { Box, Paper, Tooltip, Typography } from '@mui/material';
+import { Box, Paper, Tooltip, Typography, useTheme } from '@mui/material';
 
 // Tipos para los feriados
 interface Holiday {
@@ -54,6 +54,7 @@ moment.locale('es');
 const localizer = momentLocalizer(moment);
 
 export default function CalendarPage() {
+  const theme = useTheme();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -118,14 +119,17 @@ export default function CalendarPage() {
 
   const eventPropGetter = useCallback((event: CalendarEvent) => {
     const isPaid = event.resource?.installment?.status === 'pagado';
+    const backgroundColor = isPaid ? theme.palette.success.main : theme.palette.error.main;
+    const borderColor = isPaid ? theme.palette.success.dark : theme.palette.error.dark;
+
     return {
       style: {
-        backgroundColor: isPaid ? 'rgba(40, 167, 69, 0.8)' : 'rgba(220, 53, 69, 0.8)',
-        borderColor: isPaid ? '#198754' : '#dc3545',
-        color: 'white',
+        backgroundColor,
+        borderColor,
+        color: theme.palette.getContrastText(backgroundColor),
       },
     };
-  }, []);
+  }, [theme]);
 
   const components = {
     toolbar: CalendarToolbar,
@@ -157,11 +161,11 @@ export default function CalendarPage() {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: { xs: 2, sm: 3, lg: 4 } }}>
       <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ height: 12, width: 12, borderRadius: 1, bgcolor: 'rgba(40, 167, 69, 0.8)' }} />
+          <Box sx={{ height: 12, width: 12, borderRadius: 1, bgcolor: 'success.main' }} />
           <Typography variant="caption">Cuota Pagada</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ height: 12, width: 12, borderRadius: 1, bgcolor: 'rgba(220, 53, 69, 0.8)' }} />
+          <Box sx={{ height: 12, width: 12, borderRadius: 1, bgcolor: 'error.main' }} />
           <Typography variant="caption">Cuota Pendiente</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

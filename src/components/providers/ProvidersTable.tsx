@@ -65,13 +65,13 @@ export default function ProvidersTable({ providers, onEdit, onDelete }: Provider
     <>
       <TableContainer component={Paper} elevation={3}>
         <Table sx={{ minWidth: 650 }} aria-label="tabla de proveedores">
-          <TableHead sx={{ bgcolor: 'grey.200' }}>
+          <TableHead sx={{ bgcolor: 'background.paper' }}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold' }}>Nombre Empresa</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Contacto Principal</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Condiciones de Pago</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Tipos de Producto</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>Acciones</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', color: 'text.primary' }}>Nombre Empresa</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', color: 'text.primary' }}>Contacto Principal</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', color: 'text.primary' }}>Condiciones de Pago</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', color: 'text.primary' }}>Tipos de Producto</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', color: 'text.primary', textAlign: 'center' }}>Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
