@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PlusCircle } from 'lucide-react';
+import { Container, Typography, Button, Box, Skeleton } from '@mui/material';
+import { AddCircle } from '@mui/icons-material';
 import AddProviderModal from '@/components/providers/AddProviderModal';
 import { Provider } from '@/types';
 import { getProviders, addProvider, updateProvider, deleteProvider } from '@/services/providerService';
@@ -78,25 +79,27 @@ export default function ProvidersPage() {
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Gestión de Proveedores</h1>
-        <button
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Gestión de Proveedores
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddCircle />}
           onClick={() => setIsModalOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors duration-200"
         >
-          <PlusCircle className="mr-2 h-5 w-5" />
           Añadir Proveedor
-        </button>
-      </div>
+        </Button>
+      </Box>
 
-      <div className="mt-8">
+      <Box sx={{ mt: 4 }}>
         {isLoading ? (
-          <p>Cargando proveedores...</p>
+          <Skeleton variant="rectangular" width="100%" height={300} />
         ) : (
           <ProvidersTable providers={providers} onEdit={handleEditProvider} onDelete={handleDeleteProvider} />
         )}
-      </div>
+      </Box>
 
       {isModalOpen && (
         <AddProviderModal 
@@ -105,6 +108,6 @@ export default function ProvidersPage() {
           onSave={handleSaveProvider} 
         />
       )}
-    </div>
+    </Container>
   );
 }

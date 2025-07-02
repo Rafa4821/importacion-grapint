@@ -3,7 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bell, Mail } from 'lucide-react';
+import { Notifications, Email, ErrorOutline } from '@mui/icons-material';
+import {
+  Box,
+  Typography,
+  List,
+  ListItem,
+  ListItemAvatar,
+  Avatar,
+  ListItemText,
+  Paper,
+  Skeleton,
+  Chip,
+  Divider
+} from '@mui/material';
 
 interface Notification {
   id: string;
@@ -42,42 +55,57 @@ const NotificationHistory = () => {
   }, []);
 
   if (isLoading) {
-    return <p>Cargando historial...</p>;
+    return (
+      <Box>
+        {[...Array(5)].map((_, index) => (
+          <Skeleton key={index} variant="rectangular" height={70} sx={{ mb: 2, borderRadius: 1 }} />
+        ))}
+      </Box>
+    );
   }
 
   if (error) {
-    return <p className="text-red-500">Error: {error}</p>;
+    return (
+      <Paper elevation={2} sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2, bgcolor: 'error.light' }}>
+        <ErrorOutline color="error" />
+        <Typography color="error.dark">Error: {error}</Typography>
+      </Paper>
+    );
   }
 
   if (notifications.length === 0) {
-    return <p>No hay notificaciones para mostrar.</p>;
+    return <Typography sx={{ textAlign: 'center', color: 'text.secondary', mt: 4 }}>No hay notificaciones para mostrar.</Typography>;
   }
 
   return (
-    <div className="space-y-4">
-      {notifications.map((notification) => (
-        <div key={notification.id} className={`p-4 border rounded-lg flex items-start space-x-4 ${notification.isRead ? 'bg-gray-50' : 'bg-white'}`}>
-          <div className="flex-shrink-0">
-            {notification.channel === 'push' ? 
-              <Bell className="w-6 h-6 text-blue-500" /> : 
-              <Mail className="w-6 h-6 text-green-500" />
-            }
-          </div>
-          <div className="flex-grow">
-            <h3 className="font-semibold">{notification.title}</h3>
-            <p className="text-sm text-gray-700">{notification.body}</p>
-            <p className="text-xs text-gray-500 mt-2">
-              {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: es })}
-            </p>
-          </div>
-          {!notification.isRead && (
-            <div className="flex-shrink-0">
-              <span className="w-3 h-3 bg-blue-500 rounded-full block" title="No leído"></span>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+    <Paper elevation={2}>
+      <List sx={{ p: 0 }}>
+        {notifications.map((notification, index) => (
+          <React.Fragment key={notification.id}>
+            <ListItem sx={{ bgcolor: notification.isRead ? 'transparent' : 'action.hover' }}>
+              <ListItemAvatar>
+                <Avatar sx={{ bgcolor: notification.channel === 'push' ? 'primary.main' : 'success.main' }}>
+                  {notification.channel === 'push' ? <Notifications /> : <Email />}
+                </Avatar>
+              </ListItemAvatar>
+              <ListItemText
+                primary={notification.title}
+                secondary={notification.body}
+              />
+              <Box sx={{ textAlign: 'right', ml: 2, minWidth: '120px' }}>
+                <Typography variant="caption" color="text.secondary">
+                  {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: es })}
+                </Typography>
+                {!notification.isRead && (
+                  <Chip label="Nuevo" size="small" color="primary" sx={{ mt: 0.5 }} />
+                )}
+              </Box>
+            </ListItem>
+            {index < notifications.length - 1 && <Divider component="li" />}
+          </React.Fragment>
+        ))}
+      </List>
+    </Paper>
   );
 };
 

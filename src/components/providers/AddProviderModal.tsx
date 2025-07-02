@@ -3,7 +3,10 @@
 import { useEffect } from 'react';
 import { useForm, useFieldArray, Controller, SubmitHandler } from 'react-hook-form';
 import { Provider, ProductTypes, PaymentTerms, ContactPerson } from '@/types';
-import { X, PlusCircle, Trash2 } from 'lucide-react';
+import {
+  Dialog, DialogActions, DialogContent, DialogTitle, TextField, Checkbox, FormControlLabel, Select, MenuItem, Button, Typography, Paper, Box, FormControl, InputLabel, IconButton
+} from '@mui/material';
+import { Close, AddCircle, Delete } from '@mui/icons-material';
 
 interface AddProviderModalProps {
   providerToEdit?: Provider | null;
@@ -11,12 +14,7 @@ interface AddProviderModalProps {
   onSave: (data: Omit<Provider, 'id'>) => void;
 }
 
-const createEmptyContact = (): ContactPerson => ({
-  name: '',
-  email: '',
-  phone: '',
-  whatsapp: '',
-});
+const createEmptyContact = (): ContactPerson => ({ name: '', email: '', phone: '', whatsapp: '' });
 
 interface ProviderFormData {
   companyName: string;
@@ -43,7 +41,7 @@ export default function AddProviderModal({ providerToEdit, onClose, onSave }: Ad
   useEffect(() => {
     if (providerToEdit) {
       const { paymentTerms, ...rest } = providerToEdit;
-      const formData = {
+      reset({
         ...rest,
         paymentTerms: {
           type: paymentTerms.type,
@@ -51,8 +49,7 @@ export default function AddProviderModal({ providerToEdit, onClose, onSave }: Ad
           hasDownPayment: paymentTerms.type === 'credito' && !!paymentTerms.downPaymentPercentage,
           downPaymentPercentage: paymentTerms.type === 'credito' ? paymentTerms.downPaymentPercentage : 0,
         }
-      };
-      reset(formData);
+      });
     } else {
       reset({
         companyName: '',
@@ -66,174 +63,126 @@ export default function AddProviderModal({ providerToEdit, onClose, onSave }: Ad
   const paymentType = watch('paymentTerms.type');
   const hasDownPayment = watch('paymentTerms.hasDownPayment');
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'contacts',
-  });
+  const { fields, append, remove } = useFieldArray({ control, name: 'contacts' });
 
   const onSubmit: SubmitHandler<ProviderFormData> = (data) => {
     const { paymentTerms, ...restOfProvider } = data;
-
     let finalPaymentTerms: PaymentTerms;
-
     if (paymentTerms.type === 'contado') {
       finalPaymentTerms = { type: 'contado' };
     } else {
-      finalPaymentTerms = {
-        type: 'credito',
-        days: parseInt(String(paymentTerms.days), 10) || 0,
-      };
+      finalPaymentTerms = { type: 'credito', days: Number(paymentTerms.days) || 0 };
       if (paymentTerms.hasDownPayment && paymentTerms.downPaymentPercentage) {
-        finalPaymentTerms.downPaymentPercentage = parseFloat(String(paymentTerms.downPaymentPercentage));
+        finalPaymentTerms.downPaymentPercentage = Number(paymentTerms.downPaymentPercentage);
       }
     }
-
-    const providerToSave: Omit<Provider, 'id'> = {
-      ...restOfProvider,
-      paymentTerms: finalPaymentTerms,
-    };
-
-    onSave(providerToSave);
+    onSave({ ...restOfProvider, paymentTerms: finalPaymentTerms });
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">{providerToEdit ? 'Editar Proveedor' : 'Añadir Proveedor'}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
-            <X size={24} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">Nombre de la Empresa</label>
-            <input
-              type="text"
-              id="companyName"
+    <Dialog open onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        {providerToEdit ? 'Editar Proveedor' : 'Añadir Proveedor'}
+        <IconButton aria-label="close" onClick={onClose} sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}>
+          <Close />
+        </IconButton>
+      </DialogTitle>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <DialogContent dividers>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <TextField
+              fullWidth
+              label="Nombre de la Empresa"
               {...register('companyName', { required: 'El nombre es obligatorio' })}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              error={!!errors.companyName}
+              helperText={errors.companyName?.message}
             />
-            {errors.companyName && <p className="text-red-500 text-xs mt-1">{errors.companyName.message}</p>}
-          </div>
 
-          <div className="space-y-4">
-            <label className="block text-sm font-medium text-gray-700">Personas de Contacto</label>
-            {fields.map((field, index) => (
-              <div key={field.id} className="p-4 border rounded-md space-y-2 relative">
-                <input {...register(`contacts.${index}.name`, { required: 'El nombre es requerido' })} placeholder="Nombre" className="w-full border-gray-200 rounded-md p-2" />
-                {errors.contacts?.[index]?.name && <p className="text-red-500 text-sm">{errors.contacts[index]?.name?.message}</p>}
-                
-                <input {...register(`contacts.${index}.email`)} placeholder="Email" className="w-full border-gray-200 rounded-md p-2" />
-                
-                <input {...register(`contacts.${index}.phone`, { required: 'El teléfono es requerido' })} placeholder="Teléfono" className="w-full border-gray-200 rounded-md p-2" />
-                {errors.contacts?.[index]?.phone && <p className="text-red-500 text-sm">{errors.contacts[index]?.phone?.message}</p>}
+            <Box>
+              <Typography variant="h6" gutterBottom>Contactos</Typography>
+              {fields.map((field, index) => (
+                <Paper key={field.id} sx={{ p: 2, mb: 2, position: 'relative', border: '1px solid #e0e0e0' }}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                    <Box sx={{ flex: '1 1 45%' }}><TextField fullWidth label="Nombre" {...register(`contacts.${index}.name`, { required: 'El nombre es requerido' })} error={!!errors.contacts?.[index]?.name} helperText={errors.contacts?.[index]?.name?.message} /></Box>
+                    <Box sx={{ flex: '1 1 45%' }}><TextField fullWidth label="Email" type="email" {...register(`contacts.${index}.email`)} /></Box>
+                    <Box sx={{ flex: '1 1 45%' }}><TextField fullWidth label="Teléfono" {...register(`contacts.${index}.phone`)} /></Box>
+                    <Box sx={{ flex: '1 1 45%' }}><TextField fullWidth label="WhatsApp" {...register(`contacts.${index}.whatsapp`)} /></Box>
+                  </Box>
+                  {fields.length > 1 && (
+                    <IconButton onClick={() => remove(index)} size="small" sx={{ position: 'absolute', top: 8, right: 8 }}><Delete /></IconButton>
+                  )}
+                </Paper>
+              ))}
+              <Button startIcon={<AddCircle />} onClick={() => append(createEmptyContact())}>Añadir Contacto</Button>
+            </Box>
 
-                <input {...register(`contacts.${index}.whatsapp`)} placeholder="WhatsApp (Opcional)" className="w-full border-gray-200 rounded-md p-2" />
+            <Box>
+              <Typography variant="h6">Tipos de Producto</Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'row', gap: 4 }}>
+                <FormControlLabel control={<Checkbox {...register('productTypes.insumos')} />} label="Insumos" />
+                <Box>
+                  <Typography>Repuestos:</Typography>
+                  <FormControlLabel control={<Checkbox {...register('productTypes.repuestos.original')} />} label="Original" />
+                  <FormControlLabel control={<Checkbox {...register('productTypes.repuestos.alternativo')} />} label="Alternativo" />
+                </Box>
+              </Box>
+            </Box>
 
-                {fields.length > 1 && (
-                  <button type="button" onClick={() => remove(index)} className="absolute top-2 right-2 text-red-500 hover:text-red-700">
-                    <Trash2 size={18} />
-                  </button>
-                )}
-              </div>
-            ))}
-            <button type="button" onClick={() => append(createEmptyContact())} className="flex items-center text-blue-500 hover:text-blue-700">
-              <PlusCircle size={16} className="mr-1" /> Añadir otro contacto
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block font-medium">Tipos de Productos</label>
-            <div className="flex items-center">
-              <input type="checkbox" {...register('productTypes.insumos')} id="insumos" className="mr-2" />
-              <label htmlFor="insumos">Insumos</label>
-            </div>
-            <div className="ml-4 space-y-2">
-              <label className="block font-medium">Repuestos:</label>
-              <div className="flex items-center">
-                <input type="checkbox" {...register('productTypes.repuestos.original')} id="repuestos_original" className="mr-2" />
-                <label htmlFor="repuestos_original">Original</label>
-              </div>
-              <div className="flex items-center">
-                <input type="checkbox" {...register('productTypes.repuestos.alternativo')} id="repuestos_alternativo" className="mr-2" />
-                <label htmlFor="repuestos_alternativo">Alternativo</label>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div className="space-y-2">
-              <label className="font-medium">Condiciones de Pago</label>
-              <Controller
-                name="paymentTerms.type"
-                control={control}
-                render={({ field }) => (
-                  <select {...field} className="w-full border-gray-200 rounded-md p-2">
-                    <option value="contado">Contado</option>
-                    <option value="credito">Crédito</option>
-                  </select>
-                )}
-              />
-            </div>
-
-            {paymentType === 'credito' && (
-              <div className="mt-4 space-y-4 p-4 border rounded-md">
-                <div>
-                  <label htmlFor="paymentTerms.days" className="font-medium">Días de Crédito</label>
-                  <input 
-                    id="paymentTerms.days"
-                    type="number" 
-                    {...register('paymentTerms.days', { valueAsNumber: true, required: 'Los días son requeridos', min: { value: 1, message: 'Debe ser al menos 1 día' } })} 
-                    className="w-full border-gray-200 rounded-md p-2"
-                    placeholder="Ej: 30"
-                  />
-                  {errors.paymentTerms?.days && <p className="text-red-500 text-sm">{errors.paymentTerms.days.message}</p>}
-                </div>
-
-                <div className="flex items-center space-x-2 pt-2">
-                  <input 
-                    type="checkbox" 
-                    id="hasDownPayment"
-                    {...register('paymentTerms.hasDownPayment')} 
-                  />
-                  <label htmlFor="hasDownPayment">¿Tiene pago inicial (pie)?</label>
-                </div>
-
-                {hasDownPayment && (
-                  <div>
-                    <label htmlFor="paymentTerms.downPaymentPercentage">Porcentaje del Pie (%)</label>
-                    <input 
-                      id="paymentTerms.downPaymentPercentage"
-                      type="number"
-                      {...register('paymentTerms.downPaymentPercentage', { 
-                        valueAsNumber: true, 
-                        required: 'El porcentaje es requerido',
-                        min: { value: 1, message: 'Debe ser mayor a 0' },
-                        max: { value: 99, message: 'Debe ser menor a 100' }
-                      })}
-                      className="w-full border-gray-200 rounded-md p-2 mt-1"
-                      placeholder="Ej: 20"
-                    />
-                    {errors.paymentTerms?.downPaymentPercentage && <p className="text-red-500 text-sm">{errors.paymentTerms.downPaymentPercentage.message}</p>}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end space-x-4 pt-4">
-            <button type="button" onClick={onClose} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">
-              Cancelar
-            </button>
-            <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
-              Guardar Proveedor
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+            <Box>
+              <Typography variant="h6">Condiciones de Pago</Typography>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Tipo de Pago</InputLabel>
+                <Controller
+                  name="paymentTerms.type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select {...field} label="Tipo de Pago">
+                      <MenuItem value="contado">Contado</MenuItem>
+                      <MenuItem value="credito">Crédito</MenuItem>
+                    </Select>
+                  )}
+                />
+              </FormControl>
+              {paymentType === 'credito' && (
+                <Paper sx={{ p: 2, mt: 2, border: '1px solid #e0e0e0' }}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+                    <Box sx={{ flex: '1 1 45%' }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Días de Crédito"
+                        {...register('paymentTerms.days', { required: 'Los días son requeridos', min: { value: 1, message: 'Debe ser al menos 1 día' } })}
+                        error={!!errors.paymentTerms?.days}
+                        helperText={errors.paymentTerms?.days?.message}
+                      />
+                    </Box>
+                    <Box sx={{ flex: '1 1 45%' }}>
+                      <FormControlLabel control={<Checkbox {...register('paymentTerms.hasDownPayment')} />} label="¿Tiene pago inicial (pie)?" />
+                    </Box>
+                    {hasDownPayment && (
+                      <Box sx={{ width: '100%', mt: 2 }}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="Porcentaje del Pie (%)"
+                          {...register('paymentTerms.downPaymentPercentage', { required: 'El porcentaje es requerido', min: { value: 1, message: 'Debe ser mayor a 0' }, max: { value: 99, message: 'Debe ser menor a 100' } })}
+                          error={!!errors.paymentTerms?.downPaymentPercentage}
+                          helperText={errors.paymentTerms?.downPaymentPercentage?.message}
+                        />
+                      </Box>
+                    )}
+                  </Box>
+                </Paper>
+              )}
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={onClose} color="secondary">Cancelar</Button>
+          <Button type="submit" variant="contained">Guardar Proveedor</Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 }

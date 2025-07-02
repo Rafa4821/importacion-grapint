@@ -7,37 +7,44 @@ import NotificationHistory from '@/components/notifications/NotificationHistory'
 
 type Tab = 'history' | 'settings';
 
+import { Container, Typography, Box, Tabs, Tab, Paper } from '@mui/material';
+
 const NotificationsPage = () => {
   const [activeTab, setActiveTab] = useState<Tab>('history');
 
+  const handleTabChange = (event: React.SyntheticEvent, newValue: Tab) => {
+    setActiveTab(newValue);
+  };
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Centro de Notificaciones</h1>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Centro de Notificaciones
+      </Typography>
 
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-          <button onClick={() => setActiveTab('history')} className={`${activeTab === 'history' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Historial</button>
-          <button onClick={() => setActiveTab('settings')} className={`${activeTab === 'settings' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Configuración</button>
-        </nav>
-      </div>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={activeTab} onChange={handleTabChange} aria-label="pestañas de notificaciones">
+          <Tab label="Historial" value="history" />
+          <Tab label="Configuración" value="settings" />
+        </Tabs>
+      </Box>
 
-      <div className="mt-6">
-        {activeTab === 'history' && (
-          <NotificationHistory />
-        )}
+      <Box>
+        {activeTab === 'history' && <NotificationHistory />}
         {activeTab === 'settings' && (
-          <div>
-            <h2 className="text-xl font-semibold">Configuración de Alertas</h2>
-            <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-              <h3 className="font-medium">Notificaciones Push del Navegador</h3>
-              <p className="text-sm text-gray-600 mb-4">Activa las notificaciones en tu navegador para recibir alertas instantáneas.</p>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Paper elevation={2} sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>Notificaciones Push del Navegador</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Activa las notificaciones en tu navegador para recibir alertas instantáneas.
+              </Typography>
               <PushNotificationManager />
-            </div>
+            </Paper>
             <NotificationSettings />
-          </div>
+          </Box>
         )}
-      </div>
-    </div>
+      </Box>
+    </Container>
   );
 };
 

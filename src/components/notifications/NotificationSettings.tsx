@@ -1,8 +1,20 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import {
+  Box,
+  Button,
+  Checkbox,
+  CircularProgress,
+  FormControl,
+  FormControlLabel,
+  FormGroup,
+  FormLabel,
+  Paper,
+  Typography,
+} from '@mui/material';
 
 // Esta interfaz debe coincidir con la definida en la API
 interface NotificationPreferences {
@@ -14,10 +26,17 @@ interface NotificationPreferences {
 }
 
 const NotificationSettings = () => {
-  const { register, handleSubmit, reset, formState: { isSubmitting, isDirty } } = useForm<NotificationPreferences>();
+  const { control, handleSubmit, reset, formState: { isSubmitting, isDirty } } = useForm<NotificationPreferences>({
+    defaultValues: {
+      alerts: {
+        paymentDueSoon: { push: false, email: false, daysBefore: 3 },
+        paymentOverdue: { push: true, email: true },
+        orderStatusChanged: { push: false, email: false },
+      },
+    },
+  });
 
   useEffect(() => {
-    // Cargar las preferencias del usuario al montar el componente
     const fetchPreferences = async () => {
       try {
         const response = await fetch('/api/notifications/preferences');
@@ -48,7 +67,7 @@ const NotificationSettings = () => {
     toast.promise(promise, {
       loading: 'Guardando preferencias...',
       success: (result) => {
-        reset(result.updatedPrefs);
+        reset(result.updatedPrefs, { keepDirty: false });
         return '¡Preferencias guardadas con éxito!';
       },
       error: (err) => `Error: ${err.message}`,
@@ -56,63 +75,90 @@ const NotificationSettings = () => {
   };
 
   return (
-    <div className="mt-6 p-4 border rounded-lg bg-gray-50">
-      <h3 className="font-medium">Preferencias de Alertas</h3>
-      <p className="text-sm text-gray-600 mb-4">Elige qué notificaciones quieres recibir y por qué canal.</p>
-      
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Alerta: Cuotas por Vencer */}
-        <div>
-          <label className="font-semibold text-gray-800">Cuotas próximas a vencer</label>
-          <div className="flex items-center space-x-6 mt-2">
-            <label className="flex items-center">
-              <input type="checkbox" {...register('alerts.paymentDueSoon.push')} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
-              <span className="ml-2 text-sm">Notificación Push</span>
-            </label>
-            <label className="flex items-center">
-              <input type="checkbox" {...register('alerts.paymentDueSoon.email')} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
-              <span className="ml-2 text-sm">Email</span>
-            </label>
-          </div>
-        </div>
+    <Paper sx={{ p: 3, mt: 2 }}>
+      <Typography variant="h6" gutterBottom>
+        Preferencias de Alertas
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        Elige qué notificaciones quieres recibir y por qué canal.
+      </Typography>
 
-        {/* Alerta: Cuotas Vencidas (Obligatorias) */}
-        <div>
-          <label className="font-semibold text-gray-800">Cuotas vencidas</label>
-          <div className="flex items-center space-x-6 mt-2">
-            <label className="flex items-center">
-              <input type="checkbox" {...register('alerts.paymentOverdue.push')} checked disabled className="h-4 w-4 text-gray-400 border-gray-300 rounded" />
-              <span className="ml-2 text-sm text-gray-500">Notificación Push (Obligatoria)</span>
-            </label>
-            <label className="flex items-center">
-              <input type="checkbox" {...register('alerts.paymentOverdue.email')} checked disabled className="h-4 w-4 text-gray-400 border-gray-300 rounded" />
-              <span className="ml-2 text-sm text-gray-500">Email (Obligatorio)</span>
-            </label>
-          </div>
-        </div>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <FormControl component="fieldset" variant="standard">
+            <FormLabel component="legend">Cuotas próximas a vencer</FormLabel>
+            <FormGroup row>
+              <Controller
+                name="alerts.paymentDueSoon.push"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={<Checkbox {...field} checked={field.value} />}
+                    label="Notificación Push"
+                  />
+                )}
+              />
+              <Controller
+                name="alerts.paymentDueSoon.email"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={<Checkbox {...field} checked={field.value} />}
+                    label="Email"
+                  />
+                )}
+              />
+            </FormGroup>
+          </FormControl>
 
-        {/* Alerta: Cambio de Estado del Pedido */}
-        <div>
-          <label className="font-semibold text-gray-800">Actualización en el estado de un pedido</label>
-          <div className="flex items-center space-x-6 mt-2">
-            <label className="flex items-center">
-              <input type="checkbox" {...register('alerts.orderStatusChanged.push')} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
-              <span className="ml-2 text-sm">Notificación Push</span>
-            </label>
-            <label className="flex items-center">
-              <input type="checkbox" {...register('alerts.orderStatusChanged.email')} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
-              <span className="ml-2 text-sm">Email</span>
-            </label>
-          </div>
-        </div>
+          <FormControl component="fieldset" variant="standard">
+            <FormLabel component="legend">Cuotas vencidas</FormLabel>
+            <FormGroup row>
+               <FormControlLabel
+                  control={<Checkbox checked disabled />}
+                  label="Notificación Push (Obligatoria)"
+                />
+                <FormControlLabel
+                  control={<Checkbox checked disabled />}
+                  label="Email (Obligatorio)"
+                />
+            </FormGroup>
+          </FormControl>
 
-        <div className="flex justify-end items-center pt-4">
-          <button type="submit" disabled={isSubmitting || !isDirty} className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed">
-            {isSubmitting ? 'Guardando...' : 'Guardar Preferencias'}
-          </button>
-        </div>
+          <FormControl component="fieldset" variant="standard">
+            <FormLabel component="legend">Actualización en el estado de un pedido</FormLabel>
+            <FormGroup row>
+              <Controller
+                name="alerts.orderStatusChanged.push"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={<Checkbox {...field} checked={field.value} />}
+                    label="Notificación Push"
+                  />
+                )}
+              />
+              <Controller
+                name="alerts.orderStatusChanged.email"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={<Checkbox {...field} checked={field.value} />}
+                    label="Email"
+                  />
+                )}
+              />
+            </FormGroup>
+          </FormControl>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 2 }}>
+            <Button type="submit" variant="contained" disabled={isSubmitting || !isDirty}>
+              {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Guardar Preferencias'}
+            </Button>
+          </Box>
+        </Box>
       </form>
-    </div>
+    </Paper>
   );
 };
 

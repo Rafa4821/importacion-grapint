@@ -1,110 +1,113 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
-import { format } from 'date-fns/format';
-import { parse } from 'date-fns/parse';
-import { startOfWeek } from 'date-fns/startOfWeek';
-import { getDay } from 'date-fns/getDay';
-import { es } from 'date-fns/locale/es';
+import moment from 'moment';
+import 'moment/locale/es';
+import { useCallback, useEffect, useState } from 'react';
+import { Calendar, momentLocalizer, View } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { Holiday } from '@/app/api/holidays/route';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-import { getOrders } from '@/services/orderService';
-import { OrderEventModal, EventInfo } from '@/components/calendar/OrderEventModal';
 import { CalendarToolbar } from '@/components/calendar/CalendarToolbar';
+import { OrderEventModal } from '@/components/calendar/OrderEventModal';
+import { getOrders } from '@/services/orderService';
+import { Order, PaymentInstallment } from '@/types';
+import { EventInfo } from '@/components/calendar/OrderEventModal';
+import { Box, Paper, Tooltip, Typography } from '@mui/material';
 
-// Configuración del localizador para date-fns en español
-const locales = { es };
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek: (date: Date) => startOfWeek(date, { weekStartsOn: 1 }), // Lunes como inicio de semana
-  getDay,
-  locales,
-});
+// Tipos para los feriados
+interface Holiday {
+  date: string;
+  localName: string;
+  name: string;
+  countryCode: 'CL' | 'US';
+}
 
-// Definimos el tipo para los eventos del calendario
+// Tipo para los eventos del calendario
 interface CalendarEvent {
   title: string;
   start: Date;
   end: Date;
-  resource: EventInfo; // Datos adicionales para el modal
+  allDay: boolean;
+  resource: {
+    order: Order;
+    installment: PaymentInstallment;
+  };
 }
+
+// Configuración en español para react-big-calendar
+const messages = {
+  allDay: 'Todo el día',
+  previous: 'Anterior',
+  next: 'Siguiente',
+  today: 'Hoy',
+  month: 'Mes',
+  week: 'Semana',
+  day: 'Día',
+  agenda: 'Agenda',
+  date: 'Fecha',
+  time: 'Hora',
+  event: 'Evento',
+  noEventsInRange: 'No hay eventos en este rango.',
+  showMore: (total: number) => `+ Ver más (${total})`,
+};
+
+moment.locale('es');
+const localizer = momentLocalizer(moment);
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [view, setView] = useState<View>('month');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventInfo | null>(null);
 
-  // Estado para controlar la navegación y la vista del calendario
-  const [date, setDate] = useState(new Date());
-  const [view, setView] = useState<View>('month');
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [fetchedYear, setFetchedYear] = useState<number | null>(null);
-
   useEffect(() => {
-    const fetchAndProcessOrders = async () => {
-      try {
-        setLoading(true);
-        const orders = await getOrders();
-        const calendarEvents = orders.flatMap(order =>
-          order.installments.map(inst => {
-            const dueDate = inst.dueDate.toDate();
-            return {
-              title: `${order.providerName} - ${new Intl.NumberFormat('es-CL', { style: 'currency', currency: order.currency }).format(inst.amount)}`,
-              start: dueDate,
-              end: dueDate,
-              resource: {
-                orderId: order.id,
-                title: `Vencimiento Pedido #${order.orderNumber}`,
-                providerName: order.providerName,
-                dueDate: dueDate.toLocaleDateString('es-CL'),
-                amount: inst.amount,
-                currency: order.currency,
-                status: inst.status,
-              },
-            };
-          })
-        );
-        setEvents(calendarEvents);
-      } catch (error) {
-        console.error('Error fetching orders for calendar:', error);
-      } finally {
-        setLoading(false);
-      }
+    const fetchOrders = async () => {
+      const orders: Order[] = await getOrders();
+      const calendarEvents: CalendarEvent[] = orders.flatMap(order =>
+        order.installments.map(installment => ({
+          title: `${order.providerName} - Cuota`,
+          start: installment.dueDate.toDate(),
+          end: installment.dueDate.toDate(),
+          allDay: true,
+          resource: { order, installment },
+        }))
+      );
+      setEvents(calendarEvents);
     };
-
-    fetchAndProcessOrders();
-  }, []);
-
-  useEffect(() => {
-    const currentYear = date.getFullYear();
-    if (currentYear === fetchedYear) {
-      return; // No volver a buscar si el año no ha cambiado
-    }
 
     const fetchHolidays = async () => {
+      const year = currentDate.getFullYear();
       try {
-        const response = await fetch(`/api/holidays?year=${currentYear}`);
-        if (!response.ok) {
-          throw new Error('No se pudieron obtener los feriados');
-        }
+        const response = await fetch(`/api/holidays?year=${year}`);
+        if (!response.ok) throw new Error('Failed to fetch holidays');
         const data: Holiday[] = await response.json();
         setHolidays(data);
-        setFetchedYear(currentYear); // Marcar este año como obtenido
       } catch (error) {
-        console.error('Error fetching holidays:', error);
+        console.error(error);
       }
     };
 
+    fetchOrders();
     fetchHolidays();
-  }, [date, fetchedYear]);
+  }, [currentDate]);
+
+  const handleNavigate = (newDate: Date) => {
+    setCurrentDate(newDate);
+  };
 
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
-    setSelectedEvent(event.resource);
+    const { order, installment } = event.resource;
+    const eventInfo: EventInfo = {
+      orderId: order.id,
+      title: `Vencimiento Pedido #${order.orderNumber}`,
+      providerName: order.providerName,
+      dueDate: installment.dueDate.toDate().toLocaleDateString('es-CL'),
+      amount: installment.amount,
+      currency: order.currency,
+      status: installment.status,
+    };
+    setSelectedEvent(eventInfo);
     setIsModalOpen(true);
   }, []);
 
@@ -114,128 +117,94 @@ export default function CalendarPage() {
   };
 
   const eventPropGetter = useCallback((event: CalendarEvent) => {
-    const backgroundColor = event.resource.status === 'pagado' ? 'rgba(40, 167, 69, 0.8)' : 'rgba(220, 53, 69, 0.8)';
-    const style = {
-      backgroundColor,
-      borderRadius: '5px',
-      color: 'white',
-      border: '0px',
-      display: 'block',
-      padding: '2px 5px',
+    const isPaid = event.resource?.installment?.status === 'pagado';
+    return {
+      style: {
+        backgroundColor: isPaid ? 'rgba(40, 167, 69, 0.8)' : 'rgba(220, 53, 69, 0.8)',
+        borderColor: isPaid ? '#198754' : '#dc3545',
+        color: 'white',
+      },
     };
-    return { style };
   }, []);
 
-  // 3. Agrega un dayPropGetter opcional para el fondo de la celda
-  const dayPropGetter = useCallback((date: Date) => {
-    const dateString = format(date, 'yyyy-MM-dd');
-    const dayHoliday = holidays.find(h => h.date === dateString);
-
-    if (!dayHoliday) return {};
-
-    const className = dayHoliday.countryCode === 'CL' ? 'bg-red-50' : 'bg-blue-50';
-    return {
-      className,
-    };
-  }, [holidays]);
-
-  // 2. Usa useMemo para recrear solo los componentes cuando holidays cambien
-  const components = useMemo(() => {
-    // 1. Se renderizan puntos de colores
-    // 4. Posicionamiento y accesibilidad de los dots
-    const CustomDateCellWrapper = ({ children, value }: { children: React.ReactNode; value: Date }) => {
-      const dateString = format(value, 'yyyy-MM-dd');
-      const dayHolidays = holidays.filter(h => h.date === dateString);
-
+  const components = {
+    toolbar: CalendarToolbar,
+    dateHeader: ({ label, date }: { label: string; date: Date }) => {
+      const holidaysForDate = holidays.filter(h => new Date(h.date).toDateString() === date.toDateString());
       return (
-        <div className="relative h-full w-full">
-          {children}
-          {dayHolidays.length > 0 && (
-            <div className="absolute bottom-1 right-1 flex items-center space-x-1">
-              {dayHolidays.map(holiday => (
-                <Tooltip key={`${holiday.countryCode}-${holiday.name}`}>
-                  <TooltipTrigger asChild>
-                    <div
-                      className={`h-3 w-3 rounded-full ${holiday.countryCode === 'CL' ? 'bg-red-500' : 'bg-blue-500'} ring-1 ring-white`}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{`${holiday.name} (${holiday.countryCode})`}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
-          )}
-        </div>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', width: '100%', p: '2px' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, mr: 1 }}>
+            {holidaysForDate.map(holiday => (
+              <Tooltip key={`${holiday.countryCode}-${holiday.name}`} title={`${holiday.name} (${holiday.countryCode})`}>
+                <Box
+                  sx={{
+                    height: 8,
+                    width: 8,
+                    borderRadius: '50%',
+                    backgroundColor: holiday.countryCode === 'CL' ? 'error.light' : 'info.light',
+                  }}
+                />
+              </Tooltip>
+            ))}
+          </Box>
+          <span>{label}</span>
+        </Box>
       );
-    };
-
-    return {
-      toolbar: CalendarToolbar,
-      dateCellWrapper: CustomDateCellWrapper,
-    };
-  }, [holidays]);
-
-  if (loading) {
-    return <div className="text-center p-10">Cargando calendario...</div>;
-  }
+    },
+  };
 
   return (
-    <TooltipProvider>
-      <div className="px-4 pb-4 pt-8 sm:px-6 sm:pb-6 sm:pt-10 lg:px-8 lg:pb-8 lg:pt-12">
-        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded" style={{ backgroundColor: 'rgba(40, 167, 69, 0.8)' }} />
-            <span>Pedido Pagado</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded" style={{ backgroundColor: 'rgba(220, 53, 69, 0.8)' }} />
-            <span>Pedido Vencido</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-red-500 ring-1 ring-white" />
-            <span>Feriado (Chile)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-blue-500 ring-1 ring-white" />
-            <span>Feriado (EE.UU.)</span>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow" style={{ height: '85vh' }}>
-          <Calendar
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: { xs: 2, sm: 3, lg: 4 } }}>
+      <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ height: 12, width: 12, borderRadius: 1, bgcolor: 'rgba(40, 167, 69, 0.8)' }} />
+          <Typography variant="caption">Cuota Pagada</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ height: 12, width: 12, borderRadius: 1, bgcolor: 'rgba(220, 53, 69, 0.8)' }} />
+          <Typography variant="caption">Cuota Pendiente</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ height: 12, width: 12, borderRadius: '50%', bgcolor: 'error.main', border: '1px solid white' }} />
+          <Typography variant="caption">Feriado (Chile)</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ height: 12, width: 12, borderRadius: '50%', bgcolor: 'info.main', border: '1px solid white' }} />
+          <Typography variant="caption">Feriado (EE.UU.)</Typography>
+        </Box>
+      </Box>
+      <Paper
+        elevation={2}
+        sx={{
+          height: '85vh', // Asignar altura explícita para evitar que se corte
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden', // El calendario gestionará su propio scroll si es necesario
+        }}
+      >
+        <Calendar
           localizer={localizer}
           events={events}
           startAccessor="start"
           endAccessor="end"
-          culture='es'
-          messages={{
-            next: "Siguiente",
-            previous: "Anterior",
-            today: "Hoy",
-            month: "Mes",
-            week: "Semana",
-            day: "Día",
-            agenda: "Agenda",
-          }}
-          onSelectEvent={handleSelectEvent}
+          messages={messages}
           eventPropGetter={eventPropGetter}
-          dayPropGetter={dayPropGetter}
-          date={date}
-          view={view}
-          onNavigate={setDate}
           onView={setView}
+          view={view}
+          date={currentDate}
+          onNavigate={handleNavigate}
+          onSelectEvent={handleSelectEvent}
           components={components}
+          style={{ height: '100%' }}
         />
-      </div>
-
-      <OrderEventModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        eventInfo={selectedEvent}
-      />
-    </div>
-    </TooltipProvider>
+      </Paper>
+      {selectedEvent && (
+        <OrderEventModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          eventInfo={selectedEvent}
+        />
+      )}
+    </Box>
   );
 }
-
-

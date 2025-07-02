@@ -2,24 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { WidgetConfig, ChartType, TimeRange } from '@/types';
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
-import { Label } from "@/components/ui/label";
 import { 
+  Dialog, 
+  DialogActions, 
+  DialogContent, 
+  DialogContentText, 
+  DialogTitle, 
+  Button, 
+  FormControl, 
+  InputLabel, 
   Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+  MenuItem, 
+  Box 
+} from '@mui/material';
 
 interface WidgetSettingsProps {
   isOpen: boolean;
@@ -56,74 +51,65 @@ export function WidgetSettings({ isOpen, onClose, currentConfig, onSave }: Widge
     const title = METRICS_MAP[metric] || 'Widget Personalizado';
     const configToSave: Omit<WidgetConfig, 'id'> = { metric, title, chartType, timeRange };
     onSave(configToSave);
+    onClose(); // Close dialog on save
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Configurar Widget</DialogTitle>
-          <DialogDescription>
-            Personaliza la métrica y la visualización de este widget.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="metric" className="text-right">
-              Métrica
-            </Label>
-            <Select value={metric} onValueChange={setMetric}>
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Selecciona una métrica" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="expenses_by_provider">Gastos por Proveedor</SelectItem>
-                <SelectItem value="order_count_by_provider">Nº de Órdenes por Proveedor</SelectItem>
-                <SelectItem value="order_status_distribution">Distribución de Estados de Orden</SelectItem>
-                <SelectItem value="monthly_expense_trend">Tendencia de Gastos Mensual</SelectItem>
-                <SelectItem value="monthly_order_volume">Volumen de Órdenes Mensual</SelectItem>
-                <SelectItem value="total_amount_by_currency">Total por Moneda</SelectItem>
-                <SelectItem value="pending_payments">Total Pendiente de Pago</SelectItem>
-                <SelectItem value="payments_forecast">Previsión de Pagos</SelectItem>
-              </SelectContent>
+    <Dialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Configurar Widget</DialogTitle>
+      <DialogContent>
+        <DialogContentText sx={{ mb: 2 }}>
+          Personaliza la métrica y la visualización de este widget.
+        </DialogContentText>
+        <Box component="form" noValidate autoComplete="off" sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel id="metric-label">Métrica</InputLabel>
+            <Select
+              labelId="metric-label"
+              value={metric}
+              label="Métrica"
+              onChange={(e) => setMetric(e.target.value)}
+            >
+              {Object.entries(METRICS_MAP).map(([key, value]) => (
+                <MenuItem key={key} value={key}>{value}</MenuItem>
+              ))}
             </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="chart-type" className="text-right">
-              Tipo de Gráfico
-            </Label>
-            <Select value={chartType} onValueChange={(value) => setChartType(value as ChartType)}>
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Selecciona un tipo de gráfico" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pie">Torta</SelectItem>
-                <SelectItem value="bar">Barras</SelectItem>
-                <SelectItem value="line">Línea</SelectItem>
-              </SelectContent>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel id="chart-type-label">Tipo de Gráfico</InputLabel>
+            <Select
+              labelId="chart-type-label"
+              value={chartType}
+              label="Tipo de Gráfico"
+              onChange={(e) => setChartType(e.target.value as ChartType)}
+            >
+              <MenuItem value="pie">Torta</MenuItem>
+              <MenuItem value="bar">Barras</MenuItem>
+              <MenuItem value="line">Línea</MenuItem>
             </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="time-range" className="text-right">
-              Período
-            </Label>
-            <Select value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Selecciona un período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">Últimos 7 días</SelectItem>
-                <SelectItem value="30d">Últimos 30 días</SelectItem>
-                <SelectItem value="90d">Últimos 90 días</SelectItem>
-                <SelectItem value="all">Todo el tiempo</SelectItem>
-              </SelectContent>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel id="time-range-label">Período</InputLabel>
+            <Select
+              labelId="time-range-label"
+              value={timeRange}
+              label="Período"
+              onChange={(e) => setTimeRange(e.target.value as TimeRange)}
+            >
+              <MenuItem value="7d">Últimos 7 días</MenuItem>
+              <MenuItem value="30d">Últimos 30 días</MenuItem>
+              <MenuItem value="90d">Últimos 90 días</MenuItem>
+              <MenuItem value="all">Todo el tiempo</MenuItem>
             </Select>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="button" onClick={handleSave}>Guardar Cambios</Button>
-        </DialogFooter>
+          </FormControl>
+        </Box>
       </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancelar</Button>
+        <Button onClick={handleSave} variant="contained">Guardar Cambios</Button>
+      </DialogActions>
     </Dialog>
   );
 }

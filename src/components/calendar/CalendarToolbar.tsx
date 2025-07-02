@@ -1,10 +1,10 @@
 'use client';
 
 import { Navigate, View } from 'react-big-calendar';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Box, Button, ButtonGroup, IconButton, Typography } from '@mui/material';
+import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 
 // Tipos para las props que recibe la barra de herramientas de react-big-calendar
-// Definimos un tipo para las acciones de navegación, extrayendo los valores del objeto Navigate
 type NavigateAction = (typeof Navigate)[keyof typeof Navigate];
 
 interface CustomToolbarProps {
@@ -24,56 +24,48 @@ export const CalendarToolbar = ({ label, onNavigate, onView, view }: CustomToolb
   };
 
   return (
-        <div className="rbc-toolbar mb-4 flex flex-col md:flex-row items-center justify-between px-6 py-4 bg-gray-100 rounded-lg">
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', md: 'row' },
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        p: 2,
+        mb: 2,
+        bgcolor: 'grey.100',
+        borderRadius: 1,
+      }}
+    >
       {/* Grupo de Navegación */}
-      <div className="flex items-center mb-3 md:mb-0">
-        <button
-          type="button"
-          onClick={() => onNavigate(Navigate.PREVIOUS)}
-          className="p-2 rounded-full hover:bg-gray-200 transition-colors"
-          aria-label="Anterior"
-        >
-          <ChevronLeft className="h-5 w-5 text-gray-600" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate(Navigate.TODAY)}
-          className="mx-2 px-4 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-100 font-semibold text-gray-700 text-sm transition-colors"
-        >
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, md: 0 } }}>
+        <IconButton onClick={() => onNavigate(Navigate.PREVIOUS)} aria-label="Anterior">
+          <ChevronLeft />
+        </IconButton>
+        <Button variant="outlined" onClick={() => onNavigate(Navigate.TODAY)} sx={{ mx: 1 }}>
           Hoy
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate(Navigate.NEXT)}
-          className="p-2 rounded-full hover:bg-gray-200 transition-colors"
-          aria-label="Siguiente"
-        >
-          <ChevronRight className="h-5 w-5 text-gray-600" />
-        </button>
-      </div>
+        </Button>
+        <IconButton onClick={() => onNavigate(Navigate.NEXT)} aria-label="Siguiente">
+          <ChevronRight />
+        </IconButton>
+      </Box>
 
       {/* Etiqueta de Fecha (Mes y Año) */}
-      <div className="text-lg font-bold text-gray-800 order-first md:order-none mb-3 md:mb-0">
+      <Typography variant="h6" sx={{ order: { xs: -1, md: 0 }, mb: { xs: 2, md: 0 } }}>
         {label}
-      </div>
+      </Typography>
 
       {/* Grupo de Vistas */}
-      <div className="flex items-center space-x-1 bg-gray-200 p-1 rounded-lg">
+      <ButtonGroup variant="outlined" aria-label="Vistas del calendario">
         {(['month', 'week', 'day', 'agenda'] as View[]).map(viewName => (
-          <button
+          <Button
             key={viewName}
-            type="button"
             onClick={() => onView(viewName)}
-            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-              view === viewName
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:bg-gray-300'
-            }`}
+            variant={view === viewName ? 'contained' : 'outlined'}
           >
             {viewNames[viewName]}
-          </button>
+          </Button>
         ))}
-      </div>
-    </div>
+      </ButtonGroup>
+    </Box>
   );
 };

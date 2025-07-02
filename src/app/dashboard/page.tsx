@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import debounce from 'lodash.debounce';
@@ -11,22 +10,14 @@ import { BarChartComponent } from '../../components/dashboard/BarChartComponent'
 import { LineChartComponent } from '@/components/dashboard/LineChartComponent';
 import ExpensesByProviderChart from '@/components/dashboard/ExpensesByProviderChart';
 import { WidgetSettings } from '@/components/dashboard/WidgetSettings';
-import { Button } from '@/components/ui/button';
-import { Settings, Trash2, LayoutDashboard } from 'lucide-react';
 import { WidgetConfig } from '@/types';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Button, IconButton, Paper, Box, Typography, Skeleton, Tooltip } from '@mui/material';
+import { Settings, Delete, Add, Dashboard as DashboardIcon } from '@mui/icons-material';
 
 // Import styles for react-grid-layout
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-// Wrap the responsive grid layout with a width provider
 const ResponsiveGridLayoutWithWidth = WidthProvider(ResponsiveGridLayout);
 
 interface ChartData {
@@ -43,30 +34,6 @@ const DashboardPage = () => {
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Debounced function to save dashboard state to Firestore
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const saveDashboardState = useCallback(debounce(async (uid: string, currentWidgets: WidgetConfig[], currentLayouts: Layouts) => {
-    if (!uid) return;
-    try {
-      const dashboardRef = doc(db, 'dashboards', uid);
-
-      // Create a payload object with the current state
-      const payload = {
-        widgets: currentWidgets,
-        layouts: currentLayouts,
-      };
-
-      // Deep clone and remove all undefined values using JSON stringify/parse.
-      // This is a robust way to ensure no undefined values are sent to Firestore.
-      const cleanedPayload = JSON.parse(JSON.stringify(payload));
-
-      await setDoc(dashboardRef, cleanedPayload);
-    } catch (error) {
-      console.error("Error saving dashboard state: ", error);
-    }
-  }, 1500), []);
-
-  // Effect to load dashboard state from Firestore on component mount
   useEffect(() => {
     const loadDashboardState = async () => {
       const dashboardRef = doc(db, 'dashboards', DEFAULT_USER_ID);
@@ -76,7 +43,7 @@ const DashboardPage = () => {
         setWidgets(data.widgets || []);
         setLayouts(data.layouts || {});
       } else {
-        // Set default state for the first time
+        // Default initial state if nothing is saved
         setWidgets([
           {
             id: 'initial-widget-1',
@@ -91,107 +58,92 @@ const DashboardPage = () => {
       }
       setIsInitialLoad(false);
     };
-
     loadDashboardState();
-  }, []); // Runs only once on mount
+  }, []);
 
-  // Effect to save dashboard state when widgets or layouts change
+  const saveState = useCallback(
+    debounce(async (currentWidgets: WidgetConfig[], currentLayouts: Layouts) => {
+      try {
+        const dashboardRef = doc(db, 'dashboards', DEFAULT_USER_ID);
+        const payload = { widgets: currentWidgets, layouts: currentLayouts };
+        const cleanedPayload = JSON.parse(JSON.stringify(payload)); // Deep copy and remove undefined
+        await setDoc(dashboardRef, cleanedPayload);
+      } catch (error) {
+        console.error("Error saving dashboard state: ", error);
+      }
+    }, 1500),
+    [] // The debounced function itself doesn't change, so dependencies are empty.
+  );
+
   useEffect(() => {
     if (!isInitialLoad) {
-      saveDashboardState(DEFAULT_USER_ID, widgets, layouts);
+      saveState(widgets, layouts);
     }
-  }, [widgets, layouts, isInitialLoad, saveDashboardState]);
+  }, [widgets, layouts, isInitialLoad, saveState]);
 
   const addWidget = () => {
     const newWidgetId = `widget-${Date.now()}`;
     const newWidget: WidgetConfig = {
       id: newWidgetId,
-      metric: 'expenses_by_provider', // Default metric
+      metric: 'expenses_by_provider',
       title: 'Nuevo Widget',
-      chartType: 'bar', // Default chart type
-      timeRange: '30d', // Default time range
+      chartType: 'bar',
     };
-
-    const currentLayout = layouts.lg || [];
-    const newLayoutItem = { ...findNextAvailablePosition(currentLayout, newWidgetId), w: 4, h: 2.5, isDraggable: true, isResizable: true, minW: 3, minH: 2 };
-
-    setWidgets([...widgets, newWidget]);
+    setWidgets(prev => [...prev, newWidget]);
+    const newLayoutItem = findNextAvailablePosition(layouts.lg || [], newWidgetId);
     setLayouts(prev => ({ ...prev, lg: [...(prev.lg || []), newLayoutItem] }));
   };
 
   const removeWidget = (widgetIdToRemove: string) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este widget?')) {
-      setWidgets(widgets.filter(w => w.id !== widgetIdToRemove));
-      setLayouts(prev => {
-        const newLayouts = { ...prev };
-        // Remove the layout for the widget from all breakpoints
-        Object.keys(newLayouts).forEach(breakpoint => {
-          newLayouts[breakpoint] = newLayouts[breakpoint].filter(l => l.i !== widgetIdToRemove);
-        });
-        return newLayouts;
+    setWidgets(prev => prev.filter(w => w.id !== widgetIdToRemove));
+    setLayouts(prev => {
+      const newLayouts = { ...prev };
+      Object.keys(newLayouts).forEach(breakpoint => {
+        newLayouts[breakpoint] = newLayouts[breakpoint].filter(l => l.i !== widgetIdToRemove);
       });
-    }
+      return newLayouts;
+    });
   };
 
   const findNextAvailablePosition = (layout: Layout[], newWidgetId: string): Layout => {
-    const grid = new Array(100).fill(0).map(() => new Array(12).fill(false)); // Assuming max 100 rows
-
-    // Mark occupied cells, rounding coordinates to handle potential floats from react-grid-layout
+    const occupied = new Set<string>();
     layout.forEach(item => {
-      const startY = Math.round(item.y);
-      const endY = Math.round(item.y + item.h);
-      const startX = Math.round(item.x);
-      const endX = Math.round(item.x + item.w);
-
-      for (let y = startY; y < endY; y++) {
-        for (let x = startX; x < endX; x++) {
-          if (y >= 0 && y < 100 && x >= 0 && x < 12) {
-            grid[y][x] = true;
-          }
+      for (let y = item.y; y < item.y + item.h; y++) {
+        for (let x = item.x; x < item.x + item.w; x++) {
+          occupied.add(`${x},${y}`);
         }
       }
     });
-
-    const widgetWidth = 6;
-    const widgetHeight = 2.5; // The actual height can be a float
-    const gridHeight = Math.ceil(widgetHeight); // The number of grid rows it occupies
-
-    // Find the first available position
-    for (let y = 0; y < 100; y++) {
-      for (let x = 0; x <= 12 - widgetWidth; x++) {
-        let isSpaceAvailable = true;
-        for (let h = 0; h < gridHeight; h++) {
-          for (let w = 0; w < widgetWidth; w++) {
-            const checkY = y + h;
-            const checkX = x + w;
-            // Check if the cell is out of bounds or already occupied
-            if (checkY >= 100 || checkX >= 12 || grid[checkY][checkX]) {
-              isSpaceAvailable = false;
-              break;
-            }
+    let y = 0, x = 0;
+    while (true) {
+      let positionFound = true;
+      for (let i = 0; i < 6; i++) { // Default width
+        for (let j = 0; j < 2.5; j++) { // Default height
+          if (occupied.has(`${x + i},${y + j}`)) {
+            positionFound = false;
+            break;
           }
-          if (!isSpaceAvailable) break;
         }
-        if (isSpaceAvailable) {
-          return { i: newWidgetId, x, y, w: widgetWidth, h: widgetHeight };
-        }
+        if (!positionFound) break;
+      }
+      if (positionFound) {
+        return { i: newWidgetId, x, y, w: 6, h: 2.5, isDraggable: true, isResizable: true, minW: 3, minH: 2 };
+      }
+      x++;
+      if (x >= 12) { // 12 columns
+        x = 0;
+        y++;
       }
     }
-
-    // Fallback position if no space is found
-    return { i: newWidgetId, x: 0, y: Infinity, w: widgetWidth, h: widgetHeight };
   };
 
   const handleLayoutChange = (layout: Layout[], allLayouts: Layouts) => {
-    if (!isInitialLoad) {
-      setLayouts(allLayouts);
-    }
+    setLayouts(allLayouts);
   };
 
   const handleSaveSettings = (newConfig: Omit<WidgetConfig, 'id'>) => {
     if (!editingWidgetId) return;
-
-    setWidgets(widgets.map(w => (w.id === editingWidgetId ? { ...newConfig, id: editingWidgetId } : w)));
+    setWidgets(prev => prev.map(w => w.id === editingWidgetId ? { ...w, ...newConfig } : w));
     setIsSettingsOpen(false);
     setEditingWidgetId(null);
   };
@@ -204,16 +156,17 @@ const DashboardPage = () => {
   const editingWidget = widgets.find(w => w.id === editingWidgetId);
 
   if (isInitialLoad) {
-    return <div className="flex justify-center items-center h-screen">Cargando...</div>;
+    return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Cargando...</Box>;
   }
 
   return (
-    <TooltipProvider>
-      <div className="p-8 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Dashboard Financiero</h1>
-        <Button onClick={addWidget}>Añadir Widget</Button>
-      </div>
+    <Box sx={{ p: { xs: 2, md: 4 } }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4" component="h1" fontWeight="bold">Dashboard Financiero</Typography>
+        <Button variant="contained" startIcon={<Add />} onClick={addWidget}>
+          Añadir Widget
+        </Button>
+      </Box>
 
       {widgets.length > 0 ? (
         <ResponsiveGridLayoutWithWidth
@@ -227,17 +180,19 @@ const DashboardPage = () => {
           draggableCancel=".no-drag"
         >
           {widgets.map(widget => (
-            <div key={widget.id} className="bg-white rounded-lg shadow-md p-4 flex flex-col">
+            <Paper key={widget.id} elevation={2} sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
               <DashboardWidget config={widget} onOpenSettings={openSettingsModal} onRemove={removeWidget} />
-            </div>
+            </Paper>
           ))}
         </ResponsiveGridLayoutWithWidth>
       ) : (
-        <div className="text-center p-16 border-2 border-dashed rounded-lg bg-white">
-          <LayoutDashboard className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Dashboard Vacío</h3>
-          <p className="mt-1 text-sm text-gray-500">Comienza añadiendo un widget desde los botones de arriba.</p>
-        </div>
+        <Paper sx={{ textAlign: 'center', p: { xs: 4, md: 8 }, border: '2px dashed', borderColor: 'grey.300' }}>
+          <DashboardIcon sx={{ mx: 'auto', fontSize: 48, color: 'grey.400' }} />
+          <Typography variant="h6" component="h3" sx={{ mt: 2 }}>Dashboard Vacío</Typography>
+          <Typography sx={{ mt: 1, color: 'text.secondary' }}>
+            Comienza añadiendo un widget desde el botón de arriba.
+          </Typography>
+        </Paper>
       )}
 
       {editingWidget && (
@@ -248,8 +203,7 @@ const DashboardPage = () => {
           onSave={handleSaveSettings}
         />
       )}
-    </div>
-    </TooltipProvider>
+    </Box>
   );
 };
 
@@ -290,49 +244,39 @@ const DashboardWidget = ({ config, onOpenSettings, onRemove }: { config: WidgetC
       case 'line':
         return <LineChartComponent data={data} />;
       default:
-        return <div className="text-center">Tipo de gráfico no soportado</div>;
+        return <Typography sx={{ textAlign: 'center' }}>Tipo de gráfico no soportado</Typography>;
     }
   };
 
   return (
-    <>
-      <div className="drag-handle cursor-move flex justify-between items-center mb-2">
-        <h2 className="text-lg font-semibold">{config.title}</h2>
-        <div className="flex items-center">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => onOpenSettings(config.id)} className="no-drag">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Configurar Widget</p>
-            </TooltipContent>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Box className="drag-handle" sx={{ cursor: 'move', display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold' }}>{config.title}</Typography>
+        <Box className="no-drag">
+          <Tooltip title="Configurar Widget">
+            <IconButton size="small" onClick={() => onOpenSettings(config.id)}>
+              <Settings fontSize="small" />
+            </IconButton>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => onRemove(config.id)} className="no-drag">
-                <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Eliminar Widget</p>
-            </TooltipContent>
+          <Tooltip title="Eliminar Widget">
+            <IconButton size="small" onClick={() => onRemove(config.id)}>
+              <Delete fontSize="small" sx={{ color: 'error.main' }} />
+            </IconButton>
           </Tooltip>
-        </div>
-      </div>
-      <div className="flex-grow overflow-hidden">
+        </Box>
+      </Box>
+      <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
         {isLoading ? (
-          <Skeleton className="h-full w-full" />
+          <Skeleton variant="rectangular" width="100%" height="100%" />
         ) : error ? (
-          <div className="flex justify-center items-center h-full text-red-500">
-            <p>{error}</p>
-          </div>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'error.main' }}>
+            <Typography>{error}</Typography>
+          </Box>
         ) : (
           renderChart()
         )}
-      </div>
-    </>
+      </Box>
+    </Box>
   );
 };
 

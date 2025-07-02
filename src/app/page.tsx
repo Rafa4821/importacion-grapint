@@ -1,31 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
 import { Provider, PlainOrder } from '@/types';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Mail, FileDown } from 'lucide-react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import ReportCharts from '@/components/reports/ReportCharts';
+import ReportCharts from '@/components/reports/ReportCharts'; 
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Container, Typography, Paper, FormControl, InputLabel, Select, MenuItem, Button, Box, Stack, Tooltip, CircularProgress,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, SelectChangeEvent
+} from '@mui/material';
+import { Mail as MailIcon, FileDownload as FileDownIcon } from '@mui/icons-material';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import type { Dayjs } from 'dayjs';
 
 const ReportsPage = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState('all');
   const [status, setStatus] = useState('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState<Dayjs | null>(null);
+  const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [reportData, setReportData] = useState<PlainOrder[] | null>(null);
 
@@ -50,8 +47,8 @@ const ReportsPage = () => {
         body: JSON.stringify({
           providerId: selectedProvider,
           status,
-          startDate,
-          endDate,
+          startDate: startDate ? startDate.toISOString() : '',
+          endDate: endDate ? endDate.toISOString() : '',
         }),
       });
 
@@ -74,7 +71,6 @@ const ReportsPage = () => {
 
   const handleDownloadCSV = () => {
     if (!reportData) return;
-
     const dataForCSV = reportData.map(order => ({
       'Nº Orden': order.orderNumber,
       'Proveedor': order.providerName,
@@ -85,14 +81,11 @@ const ReportsPage = () => {
       'Fecha Factura': order.invoiceDate ? new Date(order.invoiceDate).toLocaleDateString() : 'N/A',
       'Nº Factura': order.invoiceNumber || 'N/A',
     }));
-
     const csv = Papa.unparse(dataForCSV);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
+    link.href = URL.createObjectURL(blob);
     link.setAttribute('download', 'reporte.csv');
-    link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -100,7 +93,6 @@ const ReportsPage = () => {
 
   const handleDownloadExcel = () => {
     if (!reportData) return;
-
     const dataForExcel = reportData.map(order => ({
       'Nº Orden': order.orderNumber,
       'Proveedor': order.providerName,
@@ -111,38 +103,27 @@ const ReportsPage = () => {
       'Fecha Factura': order.invoiceDate ? new Date(order.invoiceDate).toLocaleDateString() : 'N/A',
       'Nº Factura': order.invoiceNumber || 'N/A',
     }));
-
     const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
     XLSX.writeFile(workbook, "reporte.xlsx");
   };
-
+  
   const handleSendEmail = async () => {
-    if (!reportData) return;
-
-    const email = prompt('Por favor, ingresa el correo electrónico del destinatario:');
-    if (!email) {
-      toast.error('No se ingresó un correo electrónico.');
+    if (!reportData) {
+      toast.error('Primero debes generar un reporte.');
       return;
     }
-
     const toastId = toast.loading('Enviando correo...');
-
     try {
-      const response = await fetch('/api/reports/send-email', {
+      const response = await fetch('/api/reports/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, reportData }),
+        body: JSON.stringify({ reportData }),
       });
-
       const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Error al enviar el correo.');
-      }
-
-      toast.success('Correo enviado con éxito.', { id: toastId });
+      if (!response.ok) throw new Error(result.message || 'Error al enviar el correo.');
+      toast.success('Correo enviado exitosamente.', { id: toastId });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
       toast.error(errorMessage, { id: toastId });
@@ -150,142 +131,101 @@ const ReportsPage = () => {
   };
 
   return (
-    <TooltipProvider>
-      <div className="container mx-auto p-4 md:p-8">
-      <h1 className="text-3xl font-bold mb-6">Centro de Reportes</h1>
-      <div className="max-w-4xl mx-auto">
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="provider">Proveedor</Label>
-              <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-                <SelectTrigger id="provider">
-                  <SelectValue placeholder="Seleccionar Proveedor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los Proveedores</SelectItem>
-                  {providers.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.companyName}</SelectItem>
-                  ))}
-                </SelectContent>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+          Central de Reportes
+        </Typography>
+
+        <Paper component="form" onSubmit={handleSubmit} sx={{ p: 3, mb: 4 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+            <FormControl sx={{ minWidth: 200, flexGrow: 1 }}>
+              <InputLabel id="provider-label">Proveedor</InputLabel>
+              <Select labelId="provider-label" value={selectedProvider} onChange={(e: SelectChangeEvent) => setSelectedProvider(e.target.value)} label="Proveedor">
+                <MenuItem value="all">Todos los proveedores</MenuItem>
+                {providers.map(p => <MenuItem key={p.id} value={p.id}>{p.companyName}</MenuItem>)}
               </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="status">Estado de la Orden</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Seleccionar Estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los Estados</SelectItem>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="en_proceso">En Proceso</SelectItem>
-                  <SelectItem value="completada">Completada</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
-                </SelectContent>
+            </FormControl>
+            <FormControl sx={{ minWidth: 150, flexGrow: 1 }}>
+              <InputLabel id="status-label">Estado</InputLabel>
+              <Select labelId="status-label" value={status} onChange={(e: SelectChangeEvent) => setStatus(e.target.value)} label="Estado">
+                <MenuItem value="all">Todos</MenuItem>
+                <MenuItem value="pendiente">Pendiente</MenuItem>
+                <MenuItem value="en_proceso">En Proceso</MenuItem>
+                <MenuItem value="completada">Completada</MenuItem>
+                <MenuItem value="cancelada">Cancelada</MenuItem>
               </Select>
-            </div>
+            </FormControl>
+            <DatePicker label="Fecha Inicio" value={startDate} onChange={setStartDate} />
+            <DatePicker label="Fecha Fin" value={endDate} onChange={setEndDate} />
+            <Button type="submit" variant="contained" disabled={isLoading} sx={{ height: '56px', ml: 'auto' }}>
+              {isLoading ? <CircularProgress size={24} /> : 'Generar'}
+            </Button>
+          </Box>
+        </Paper>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="startDate">Fecha de Inicio</Label>
-                <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="endDate">Fecha de Fin</Label>
-                <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              </div>
-            </div>
-          </div>
-          <Button type="submit" disabled={isLoading} className="mt-6 w-full">
-            {isLoading ? 'Generando...' : 'Generar Reporte'}
-          </Button>
-        </form>
-
-        {isLoading && <div className="text-center"><p>Cargando resultados...</p></div>}
-
-        {reportData && !isLoading && (
-          <div className="bg-white p-8 rounded-lg shadow-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Resultados del Reporte</h2>
+        {reportData && (
+          <Paper sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h5" component="h2">Resultados del Reporte</Typography>
               {reportData.length > 0 && (
-                <div className="flex items-center space-x-2">
-                  <div className="flex space-x-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={handleDownloadCSV} variant="outline">
-                  <FileDown className="mr-2 h-4 w-4" />
-                  CSV
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Exportar a CSV</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={handleDownloadExcel} variant="outline">
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Excel
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Exportar a Excel (.xlsx)</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={handleSendEmail}>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Enviar por Email
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Enviar reporte por correo electrónico</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-                </div>
+                <Stack direction="row" spacing={1}>
+                  <Tooltip title="Exportar a CSV">
+                    <Button onClick={handleDownloadCSV} variant="outlined" startIcon={<FileDownIcon />}>CSV</Button>
+                  </Tooltip>
+                  <Tooltip title="Exportar a Excel">
+                    <Button onClick={handleDownloadExcel} variant="outlined" startIcon={<FileDownIcon />}>Excel</Button>
+                  </Tooltip>
+                  <Tooltip title="Enviar por Email">
+                    <Button onClick={handleSendEmail} variant="contained" startIcon={<MailIcon />}>Email</Button>
+                  </Tooltip>
+                </Stack>
               )}
-            </div>
+            </Box>
             {reportData.length > 0 ? (
               <>
                 <ReportCharts reportData={reportData} />
-                <p className="mb-4 text-gray-600">Se encontraron <span className="font-semibold">{reportData.length}</span> órdenes.</p>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nº Orden</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Se encontraron <strong>{reportData.length}</strong> órdenes.
+                </Typography>
+                <TableContainer>
+                  <Table stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Nº Orden</TableCell>
+                        <TableCell>Proveedor</TableCell>
+                        <TableCell>Fecha</TableCell>
+                        <TableCell>Monto</TableCell>
+                        <TableCell>Estado</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
                       {reportData.map((order) => (
-                        <tr key={order.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.orderNumber}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.providerName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(order.orderDate).toLocaleDateString()}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Intl.NumberFormat('es-CL', { style: 'currency', currency: order.currency || 'CLP' }).format(order.totalAmount)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'completada' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{order.status}</span></td>
-                        </tr>
+                        <TableRow key={order.id} hover>
+                          <TableCell>{order.orderNumber}</TableCell>
+                          <TableCell>{order.providerName}</TableCell>
+                          <TableCell>{new Date(order.orderDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{new Intl.NumberFormat('es-CL', { style: 'currency', currency: order.currency || 'CLP' }).format(order.totalAmount)}</TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={order.status}
+                              color={order.status === 'completada' ? 'success' : order.status === 'pendiente' ? 'warning' : 'info'}
+                              size="small"
+                            />
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </>
             ) : (
-              <p>No se encontraron órdenes con los filtros seleccionados.</p>
+              <Typography>No se encontraron órdenes con los filtros seleccionados.</Typography>
             )}
-          </div>
+          </Paper>
         )}
-      </div>
-    </div>
-    </TooltipProvider>
+      </Container>
+    </LocalizationProvider>
   );
 };
 

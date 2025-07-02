@@ -1,18 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
 import MainLayout from "@/components/layout/MainLayout";
 import { Toaster } from "react-hot-toast";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import ThemeRegistry from "@/components/ThemeRegistry/ThemeRegistry";
 
 export const metadata: Metadata = {
   title: "Gestor de Pagos - Impor-Cami",
@@ -26,13 +15,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <main className="flex-1 p-6 bg-gray-100">
+      <body>
+        <ThemeRegistry>
           <Toaster position="top-right" />
           <MainLayout>{children}</MainLayout>
-        </main>
+        </ThemeRegistry>
       </body>
     </html>
   );

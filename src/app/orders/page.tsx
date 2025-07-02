@@ -14,7 +14,8 @@ import { Order, Provider, OrderFormData } from '@/types';
 import AddOrderModal from '@/components/orders/AddOrderModal';
 import { updateInstallmentStatus } from '@/services/orderService';
 import OrdersTable from '@/components/orders/OrdersTable';
-import { PlusCircle } from 'lucide-react';
+import { Add as AddIcon } from '@mui/icons-material';
+import { Container, Box, Typography, Button, Skeleton } from '@mui/material';
 import toast from 'react-hot-toast';
 
 export default function OrdersPage() {
@@ -100,32 +101,35 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Gestión de Pedidos</h1>
-        <button
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4" component="h1" fontWeight="bold">
+          Gestión de Pedidos
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => {
             setOrderToEdit(null);
             setAddModalOpen(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center hover:bg-blue-700 transition-colors"
         >
-          <PlusCircle size={20} className="mr-2" />
           Añadir Pedido
-        </button>
-      </div>
+        </Button>
+      </Box>
 
       {loading ? (
-        <div className="text-center py-10">Cargando pedidos...</div>
+        <Box>
+          <Skeleton variant="rectangular" height={60} sx={{ mb: 1 }} />
+          <Skeleton variant="rectangular" height={400} />
+        </Box>
       ) : (
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <OrdersTable 
-            orders={orders} 
-            onEdit={handleEdit} 
-            onDelete={handleDelete} 
-            onInstallmentUpdate={handleInstallmentUpdate} 
-          />
-        </div>
+        <OrdersTable 
+          orders={orders} 
+          onEdit={handleEdit} 
+          onDelete={handleDelete} 
+          onInstallmentUpdate={handleInstallmentUpdate} 
+        />
       )}
 
       <AddOrderModal
@@ -138,6 +142,6 @@ export default function OrdersPage() {
         orderToEdit={orderToEdit}
         providers={providers}
       />
-    </div>
+    </Container>
   );
 }

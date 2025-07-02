@@ -5,6 +5,7 @@ import { Order, OrderStatus } from '@/types';
 import { getOrders, updateOrderStatus } from '@/services/orderService';
 import OrderWorkflow from '@/components/orders/OrderWorkflow';
 import toast from 'react-hot-toast';
+import { Container, Typography, Box, CircularProgress } from '@mui/material';
 
 export default function KanbanPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -26,9 +27,8 @@ export default function KanbanPage() {
     fetchOrders();
   }, []);
 
-    const handleOrderStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
+  const handleOrderStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
     const promise = updateOrderStatus(orderId, newStatus).then(() => {
-      // After a successful update, refetch all orders to get the updated installments
       fetchOrders();
     });
 
@@ -40,13 +40,18 @@ export default function KanbanPage() {
   };
 
   return (
-        <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Seguimiento de Pedidos</h1>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Seguimiento de Pedidos
+      </Typography>
       {isLoading ? (
-                <p className="text-center text-gray-500">Cargando seguimiento...</p>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+          <CircularProgress />
+          <Typography variant="h6" sx={{ ml: 2 }}>Cargando seguimiento...</Typography>
+        </Box>
       ) : (
         <OrderWorkflow orders={orders} onOrderStatusUpdate={handleOrderStatusUpdate} />
       )}
-    </div>
+    </Container>
   );
 }

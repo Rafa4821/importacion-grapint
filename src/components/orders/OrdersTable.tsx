@@ -1,9 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, MouseEvent } from 'react';
 import { Timestamp } from 'firebase/firestore';
 import { Order } from '@/types';
 import { getProximoVencimiento, VencimientoInfo } from '@/utils/dateUtils';
 import { getMontoPendiente } from '@/utils/orderUtils';
-import { Edit, Trash2, X } from 'lucide-react';
+import { 
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, 
+  IconButton, Popover, Typography, Box, Button, Chip, Card, CardContent, 
+  CardActions, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, Link 
+} from '@mui/material';
+import { Edit, Delete, Close } from '@mui/icons-material';
 
 interface OrdersTableProps {
   orders: Order[];
@@ -13,217 +18,189 @@ interface OrdersTableProps {
 }
 
 export default function OrdersTable({ orders, onEdit, onDelete, onInstallmentUpdate }: OrdersTableProps) {
-  const [activePopover, setActivePopover] = useState<string | null>(null);
+  const [popoverAnchor, setPopoverAnchor] = useState<HTMLButtonElement | null>(null);
+  const [activeOrder, setActiveOrder] = useState<Order | null>(null);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
 
   const processedOrders = useMemo(() => {
-    return orders.map(order => {
-      const vencimiento = getProximoVencimiento(order);
-      const montoPendiente = getMontoPendiente(order);
-      return {
-        ...order,
-        vencimientoInfo: vencimiento,
-        montoPendiente: montoPendiente,
-      };
-    });
+    return orders.map(order => ({
+      ...order,
+      vencimientoInfo: getProximoVencimiento(order),
+      montoPendiente: getMontoPendiente(order),
+    }));
   }, [orders]);
 
   if (orders.length === 0) {
-    return <p className="text-center text-gray-500">No hay pedidos para mostrar.</p>;
+    return <Typography sx={{ textAlign: 'center', p: 4 }}>No hay pedidos para mostrar.</Typography>;
   }
 
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('es-CL', { style: 'currency', currency }).format(amount);
+  const formatCurrency = (amount: number, currency: string) => new Intl.NumberFormat('es-CL', { style: 'currency', currency }).format(amount);
+  const formatDate = (date: Timestamp | null | undefined) => date?.toDate().toLocaleDateString('es-CL') ?? 'N/A';
+
+  const handlePopoverOpen = (event: MouseEvent<HTMLButtonElement>, order: Order) => {
+    setPopoverAnchor(event.currentTarget);
+    setActiveOrder(order);
   };
 
-  const formatDate = (date: Timestamp | null | undefined) => {
-    if (date && typeof date.toDate === 'function') {
-      return date.toDate().toLocaleDateString('es-CL');
-    }
-    return 'N/A';
-  };
-
-  const handleTogglePopover = (orderId: string) => {
-    setActivePopover(prev => (prev === orderId ? null : orderId));
+  const handlePopoverClose = () => {
+    setPopoverAnchor(null);
+    setActiveOrder(null);
   };
 
   const handleMarkAsPaid = async (orderId: string, installmentIndex: number) => {
     try {
       await onInstallmentUpdate(orderId, installmentIndex);
-      setActivePopover(null); // Close popover on success
+      handlePopoverClose();
     } catch (error) {
       console.error("Failed to update installment status", error);
     }
   };
 
-  const criticalityClasses: Record<VencimientoInfo['criticidad'], string> = {
-    'vencido': 'bg-red-500',
-    'critico': 'bg-orange-500',
-    'pronto': 'bg-yellow-400',
-    'normal': 'bg-green-500',
-    'sin-vencimiento': 'bg-gray-400',
+  const handleDeleteClick = (order: Order) => {
+    setOrderToDelete(order);
+    setDeleteConfirmationOpen(true);
   };
 
+  const handleConfirmDelete = () => {
+    if (orderToDelete) {
+      onDelete(orderToDelete.id);
+      setDeleteConfirmationOpen(false);
+      setOrderToDelete(null);
+    }
+  };
+
+  const criticalityColors: Record<VencimientoInfo['criticidad'], string> = {
+    'vencido': 'error.main',
+    'critico': 'warning.main',
+    'pronto': 'info.main',
+    'normal': 'success.main',
+    'sin-vencimiento': 'grey.500',
+  };
+
+  const statusColors: Record<string, 'success' | 'warning' | 'default'> = {
+    'Pagado': 'success',
+    'Pendiente': 'warning',
+  };
+
+  const renderInstallmentsPopover = () => (
+    <Popover
+      open={Boolean(popoverAnchor)}
+      anchorEl={popoverAnchor}
+      onClose={handlePopoverClose}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+    >
+      <Box sx={{ p: 2, width: 350 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h6">Detalle de Pagos</Typography>
+          <IconButton onClick={handlePopoverClose} size="small"><Close /></IconButton>
+        </Box>
+        <Divider sx={{ mb: 1 }}/>
+        {activeOrder?.installments.map((inst, index) => (
+          <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1, borderBottom: '1px solid #eee' }}>
+            <Box>
+              <Typography variant="body1" fontWeight="bold">{formatCurrency(inst.amount, activeOrder.currency)}</Typography>
+              <Typography variant="caption" color="text.secondary">Vence: {formatDate(inst.dueDate)}</Typography>
+            </Box>
+            {inst.status === 'pendiente' ? (
+              <Button size="small" variant="contained" onClick={() => handleMarkAsPaid(activeOrder.id, index)}>Pagar</Button>
+            ) : (
+              <Chip label="Pagado" color="success" size="small" />
+            )}
+          </Box>
+        ))}
+      </Box>
+    </Popover>
+  );
+
+  const renderDeleteConfirmationDialog = () => (
+    <Dialog open={deleteConfirmationOpen} onClose={() => setDeleteConfirmationOpen(false)}>
+      <DialogTitle>Confirmar Eliminación</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          ¿Estás seguro de que quieres eliminar el pedido <strong>{orderToDelete?.orderNumber}</strong>? Esta acción no se puede deshacer.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setDeleteConfirmationOpen(false)}>Cancelar</Button>
+        <Button onClick={handleConfirmDelete} color="error" variant="contained">Eliminar</Button>
+      </DialogActions>
+    </Dialog>
+  );
+
   return (
-    <div>
+    <Box>
       {/* Desktop Table View */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full bg-white">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="py-2 px-4 border-b text-left">N° Pedido</th>
-              <th className="py-2 px-4 border-b text-left">Proveedor</th>
-              <th className="py-2 px-4 border-b text-left">Fecha Pedido</th>
-              <th className="py-2 px-4 border-b text-left">Monto Total</th>
-              <th className="py-2 px-4 border-b text-left">Monto Pendiente</th>
-              <th className="py-2 px-4 border-b text-left">Estado</th>
-              <th className="py-2 px-4 border-b text-left">Próximo Vencimiento</th>
-              <th className="py-2 px-4 border-b text-left">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {processedOrders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50">
-                <td className="py-2 px-4 border-b relative">
-                  <button onClick={() => handleTogglePopover(order.id)} className="text-blue-600 hover:underline font-semibold">
-                    {order.orderNumber}
-                  </button>
-                  {activePopover === order.id && (
-                    <div className="absolute z-10 -top-4 left-0 w-80 bg-white border border-gray-200 rounded-lg shadow-xl p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-bold">Detalle de Pagos</h4>
-                        <button onClick={() => setActivePopover(null)} className="text-gray-500 hover:text-gray-800">
-                          <X size={20} />
-                        </button>
-                      </div>
-                      <ul>
-                        {order.installments.map((inst, index) => (
-                          <li key={index} className="flex justify-between items-center py-1 border-b last:border-b-0">
-                            <div>
-                              <p className="font-semibold">{formatCurrency(inst.amount, order.currency)}</p>
-                              <p className="text-sm text-gray-500">Vence: {formatDate(inst.dueDate)}</p>
-                            </div>
-                            {inst.status === 'pendiente' ? (
-                              <button 
-                                onClick={() => handleMarkAsPaid(order.id, index)}
-                                className="bg-blue-500 text-white text-xs font-bold py-1 px-2 rounded hover:bg-blue-600"
-                              >
-                                Pagar
-                              </button>
-                            ) : (
-                              <span className="text-green-600 font-semibold text-sm">Pagado</span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </td>
-                <td className="py-2 px-4 border-b">{order.providerName}</td>
-                <td className="py-2 px-4 border-b">{formatDate(order.orderDate)}</td>
-                <td className="py-2 px-4 border-b">{formatCurrency(order.totalAmount, order.currency)}</td>
-                <td className="py-2 px-4 border-b font-bold">{formatCurrency(order.montoPendiente, order.currency)}</td>
-                <td className="py-2 px-4 border-b">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'Pagado' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {order.status.replace(/_/g, ' ')}
-                  </span>
-                </td>
-                <td className="py-2 px-4 border-b">
-                  {order.vencimientoInfo.fecha ? (
-                    <div className="flex items-center">
-                      <span className={`h-3 w-3 rounded-full mr-2 ${criticalityClasses[order.vencimientoInfo.criticidad]}`}></span>
-                      {order.vencimientoInfo.fecha.toLocaleDateString('es-CL')}
-                    </div>
-                  ) : (
-                    <span className="text-gray-500">N/A</span>
-                  )}
-                </td>
-                <td className="py-2 px-4 border-b">
-                  <button onClick={() => onEdit(order)} className="text-blue-500 hover:text-blue-700 mr-2"><Edit size={20} /></button>
-                  <button onClick={() => { if (window.confirm(`¿Estás seguro de que quieres eliminar el pedido ${order.orderNumber}?`)) { onDelete(order.id); } }} className="text-red-500 hover:text-red-700"><Trash2 size={20} /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Paper sx={{ display: { xs: 'none', md: 'block' }, overflow: 'hidden' }}>
+        <TableContainer>
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow>
+                {['N° Pedido', 'Proveedor', 'Fecha', 'Monto Total', 'Monto Pendiente', 'Estado', 'Próximo Vencimiento', 'Acciones'].map(headCell => <TableCell key={headCell}>{headCell}</TableCell>)}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {processedOrders.map((order) => (
+                <TableRow key={order.id} hover>
+                  <TableCell><Link component="button" variant="body2" onClick={(e) => handlePopoverOpen(e, order)}>{order.orderNumber}</Link></TableCell>
+                  <TableCell>{order.providerName}</TableCell>
+                  <TableCell>{formatDate(order.orderDate)}</TableCell>
+                  <TableCell>{formatCurrency(order.totalAmount, order.currency)}</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>{formatCurrency(order.montoPendiente, order.currency)}</TableCell>
+                  <TableCell><Chip label={order.status.replace(/_/g, ' ')} color={statusColors[order.status] || 'default'} size="small" /></TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: criticalityColors[order.vencimientoInfo.criticidad], mr: 1 }} />
+                      <Typography variant="body2">{order.vencimientoInfo.fecha ? order.vencimientoInfo.fecha.toLocaleDateString('es-CL') : 'N/A'}</Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => onEdit(order)} size="small"><Edit /></IconButton>
+                    <IconButton onClick={() => handleDeleteClick(order)} size="small"><Delete /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
       {/* Mobile Card View */}
-      <div className="block md:hidden space-y-4">
-        {processedOrders.map((order) => (
-          <div key={order.id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm text-gray-500">Pedido</p>
-                <button onClick={() => handleTogglePopover(order.id)} className="text-lg font-bold text-blue-600 hover:underline">
-                  {order.orderNumber}
-                </button>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button onClick={() => onEdit(order)} className="text-blue-500 hover:text-blue-700"><Edit size={20} /></button>
-                <button onClick={() => { if (window.confirm(`¿Estás seguro de que quieres eliminar el pedido ${order.orderNumber}?`)) { onDelete(order.id); } }} className="text-red-500 hover:text-red-700"><Trash2 size={20} /></button>
-              </div>
-            </div>
-            {activePopover === order.id && (
-              <div className="mt-2 w-full bg-gray-50 border border-gray-200 rounded-lg shadow-lg p-3">
-                 <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-bold">Detalle de Pagos</h4>
-                    <button onClick={() => setActivePopover(null)} className="text-gray-500 hover:text-gray-800"><X size={20} /></button>
-                  </div>
-                  <ul>
-                    {order.installments.map((inst, index) => (
-                      <li key={index} className="flex justify-between items-center py-1 border-b last:border-b-0">
-                        <div>
-                          <p className="font-semibold">{formatCurrency(inst.amount, order.currency)}</p>
-                          <p className="text-sm text-gray-500">Vence: {formatDate(inst.dueDate)}</p>
-                        </div>
-                        {inst.status === 'pendiente' ? (
-                          <button onClick={() => handleMarkAsPaid(order.id, index)} className="bg-blue-500 text-white text-xs font-bold py-1 px-2 rounded hover:bg-blue-600">Pagar</button>
-                        ) : (
-                          <span className="text-green-600 font-semibold text-sm">Pagado</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-              </div>
-            )}
-            <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-gray-500">Proveedor</p>
-                <p className="font-semibold">{order.providerName}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Fecha</p>
-                <p className="font-semibold">{formatDate(order.orderDate)}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Monto Total</p>
-                <p className="font-semibold">{formatCurrency(order.totalAmount, order.currency)}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Pendiente</p>
-                <p className="font-bold">{formatCurrency(order.montoPendiente, order.currency)}</p>
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className="text-gray-500 text-sm">Estado</p>
-              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.status === 'Pagado' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                {order.status.replace(/_/g, ' ')}
-              </span>
-            </div>
-            <div className="mt-2">
-              <p className="text-gray-500 text-sm">Próximo Vencimiento</p>
-              {order.vencimientoInfo.fecha ? (
-                <div className="flex items-center">
-                  <span className={`h-3 w-3 rounded-full mr-2 ${criticalityClasses[order.vencimientoInfo.criticidad]}`}></span>
-                  {order.vencimientoInfo.fecha.toLocaleDateString('es-CL')}
-                </div>
-              ) : (
-                <span className="text-gray-500">N/A</span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+      <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+        <Box>
+          {processedOrders.map((order) => (
+            <Card variant="outlined" key={order.id} sx={{ mb: 2 }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Pedido</Typography>
+                    <Link component="button" variant="h6" onClick={(e) => handlePopoverOpen(e, order)}>{order.orderNumber}</Link>
+                  </Box>
+                  <CardActions sx={{ p: 0 }}>
+                    <IconButton onClick={() => onEdit(order)} size="small"><Edit /></IconButton>
+                    <IconButton onClick={() => handleDeleteClick(order)} size="small"><Delete /></IconButton>
+                  </CardActions>
+                </Box>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', mt: 1, mx: -1 }}>
+                  <Box sx={{ width: '50%', p: 1 }}><Typography variant="body2"><strong>Proveedor:</strong> {order.providerName}</Typography></Box>
+                  <Box sx={{ width: '50%', p: 1 }}><Typography variant="body2"><strong>Fecha:</strong> {formatDate(order.orderDate)}</Typography></Box>
+                  <Box sx={{ width: '50%', p: 1 }}><Typography variant="body2"><strong>Total:</strong> {formatCurrency(order.totalAmount, order.currency)}</Typography></Box>
+                  <Box sx={{ width: '50%', p: 1 }}><Typography variant="body2" fontWeight="bold"><strong>Pendiente:</strong> {formatCurrency(order.montoPendiente, order.currency)}</Typography></Box>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                   <Chip label={order.status.replace(/_/g, ' ')} color={statusColors[order.status] || 'default'} size="small" />
+                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: criticalityColors[order.vencimientoInfo.criticidad], mr: 1 }} />
+                    <Typography variant="body2">{order.vencimientoInfo.fecha ? order.vencimientoInfo.fecha.toLocaleDateString('es-CL') : 'N/A'}</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+      </Box>
+      {renderInstallmentsPopover()}
+      {renderDeleteConfirmationDialog()}
+    </Box>
   );
 }
