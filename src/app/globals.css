@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Custom styles for React Big Calendar to improve spacing */
+.rbc-month-row {
+  min-height: 110px; /* Increase row height to give more space */
+}
+
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
