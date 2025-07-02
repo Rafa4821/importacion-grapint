@@ -59,7 +59,8 @@ export default function AddOrderModal({ isOpen, onClose, onSave, providers, orde
         orderNumber: '',
         providerId: '',
         orderDate: new Date(),
-        totalAmount: 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        totalAmount: '' as any, // Set to empty for better UX, cast as any to satisfy type
         currency: 'USD',
         invoiceNumber: '',
         invoiceDate: undefined,
@@ -120,7 +121,7 @@ export default function AddOrderModal({ isOpen, onClose, onSave, providers, orde
 
           <div>
             <label htmlFor="totalAmount" className="block font-medium">Monto Total</label>
-            <input type="number" {...register('totalAmount', { required: 'El monto es requerido', valueAsNumber: true, min: { value: 0.01, message: 'El monto debe ser positivo' } })} className="w-full p-2 border rounded" />
+            <input type="number" step="0.01" {...register('totalAmount', { required: 'El monto es requerido', valueAsNumber: true, min: { value: 0.01, message: 'El monto debe ser positivo' } })} className="w-full p-2 border rounded" />
             {errors.totalAmount && <p className="text-red-500 text-sm">{errors.totalAmount.message}</p>}
           </div>
 
