@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Timestamp } from 'firebase/firestore';
 import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { NotificationContact, NotificationEvent } from '@/types';
@@ -82,7 +83,7 @@ export default function NotificationSettingsPage() {
             testFired = true;
             const { subject, body } = generateNotificationContentForEvent(event as NotificationEvent, {
               order: { orderNumber: 'PED-TEST-01', providerName: 'Proveedor de Prueba', currency: 'USD' },
-              installment: { amount: '500.00', dueDate: new Date().toISOString() },
+              installment: { amount: 500.00, dueDate: Timestamp.fromDate(new Date()) },
             });
 
             if (channel === 'email') {
