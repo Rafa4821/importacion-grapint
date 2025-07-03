@@ -11,7 +11,7 @@ import {
   Switch,
   Paper,
 } from '@mui/material';
-import { Control, Controller, FieldValues } from 'react-hook-form';
+import { Control, Controller, FieldValues, Path } from 'react-hook-form';
 
 // Define user-friendly labels for events and channels
 const eventLabels: { [key: string]: string } = {
@@ -31,12 +31,12 @@ const channelLabels: { [key: string]: string } = {
 const eventKeys = Object.keys(eventLabels);
 const channelKeys = Object.keys(channelLabels);
 
-interface NotificationSettingsMatrixProps {
-  // Use FieldValues for generic form control to ensure reusability and type safety.
-  control: Control<FieldValues>;
+// Use a generic interface to accept any form control.
+interface NotificationSettingsMatrixProps<TFieldValues extends FieldValues> {
+  control: Control<TFieldValues>;
 }
 
-const NotificationSettingsMatrix: React.FC<NotificationSettingsMatrixProps> = ({ control }) => {
+const NotificationSettingsMatrix = <TFieldValues extends FieldValues>({ control }: NotificationSettingsMatrixProps<TFieldValues>) => {
   return (
     <Box sx={{ mt: 3, mb: 2 }}>
       <Typography variant="h6" gutterBottom>
@@ -63,7 +63,7 @@ const NotificationSettingsMatrix: React.FC<NotificationSettingsMatrixProps> = ({
                 {channelKeys.map((channelKey) => (
                   <TableCell key={channelKey} align="center">
                     <Controller
-                      name={`settings.${eventKey}.${channelKey}` as const}
+                      name={`settings.${eventKey}.${channelKey}` as Path<TFieldValues>}
                       control={control}
                       render={({ field: { onChange, value } }) => (
                         <Switch
