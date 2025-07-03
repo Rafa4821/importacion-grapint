@@ -31,17 +31,8 @@ const channelLabels: { [key: string]: string } = {
 const eventKeys = Object.keys(eventLabels);
 const channelKeys = Object.keys(channelLabels);
 
-// Define the shape of the form data for better type safety
-interface NotificationSettingsFormValues extends FieldValues {
-  settings: {
-    [eventKey: string]: {
-      [channelKey: string]: boolean;
-    };
-  };
-}
-
 interface NotificationSettingsMatrixProps {
-  control: Control<NotificationSettingsFormValues>;
+  control: Control<any>;
 }
 
 const NotificationSettingsMatrix: React.FC<NotificationSettingsMatrixProps> = ({ control }) => {
