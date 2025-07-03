@@ -15,15 +15,23 @@ import {
   Paper,
   Skeleton,
   Chip,
-  Divider
+  Divider,
 } from '@mui/material';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  Timestamp,
+} from 'firebase/firestore';
 
 interface Notification {
   id: string;
-  channel: 'push' | 'email';
+  channel: 'push' | 'email' | 'inApp';
   title: string;
   body: string;
-  createdAt: string; // ISO string date
+  createdAt: Timestamp; // Changed from string to Timestamp
   isRead: boolean;
   referenceUrl?: string;
 }
@@ -34,31 +42,42 @@ const NotificationHistory = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch('/api/notifications/history');
-        if (!response.ok) {
-          throw new Error('No se pudo cargar el historial.');
-        }
-        const data = await response.json();
-        setNotifications(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ocurrió un error inesperado.');
-      } finally {
+    const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const notifs = querySnapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            } as Notification)
+        );
+        setNotifications(notifs);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error('Error fetching notification history:', err);
+        setError('No se pudo cargar el historial de notificaciones.');
         setIsLoading(false);
       }
-    };
+    );
 
-    fetchHistory();
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
   if (isLoading) {
     return (
       <Box>
         {[...Array(5)].map((_, index) => (
-          <Skeleton key={index} variant="rectangular" height={70} sx={{ mb: 2, borderRadius: 1 }} />
+          <Skeleton
+            key={index}
+            variant="rectangular"
+            height={70}
+            sx={{ mb: 2, borderRadius: 1 }}
+          />
         ))}
       </Box>
     );
@@ -66,7 +85,16 @@ const NotificationHistory = () => {
 
   if (error) {
     return (
-      <Paper elevation={2} sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2, bgcolor: 'error.light' }}>
+      <Paper
+        elevation={2}
+        sx={{
+          p: 3,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          bgcolor: 'error.light',
+        }}
+      >
         <ErrorOutline color="error" />
         <Typography color="error.dark">Error: {error}</Typography>
       </Paper>
@@ -74,7 +102,11 @@ const NotificationHistory = () => {
   }
 
   if (notifications.length === 0) {
-    return <Typography sx={{ textAlign: 'center', color: 'text.secondary', mt: 4 }}>No hay notificaciones para mostrar.</Typography>;
+    return (
+      <Typography sx={{ textAlign: 'center', color: 'text.secondary', mt: 4 }}>
+        No hay notificaciones para mostrar.
+      </Typography>
+    );
   }
 
   return (
@@ -82,19 +114,33 @@ const NotificationHistory = () => {
       <List sx={{ p: 0 }}>
         {notifications.map((notification, index) => (
           <React.Fragment key={notification.id}>
-            <ListItem sx={{ bgcolor: notification.isRead ? 'transparent' : 'action.hover' }}>
+            <ListItem
+              sx={{ bgcolor: notification.isRead ? 'transparent' : 'action.hover' }}
+            >
               <ListItemAvatar>
-                <Avatar sx={{ bgcolor: notification.channel === 'push' ? 'primary.main' : 'success.main' }}>
-                  {notification.channel === 'push' ? <Notifications /> : <Email />}
+                <Avatar
+                  sx={{
+                    bgcolor:
+                      notification.channel === 'email'
+                        ? 'success.main'
+                        : 'primary.main',
+                  }}
+                >
+                  {notification.channel === 'email' ? <Email /> : <Notifications />}
                 </Avatar>
               </ListItemAvatar>
               <ListItemText
                 primary={notification.title}
                 secondary={notification.body}
+                primaryTypographyProps={{ sx: { wordBreak: 'break-word' } }}
+                secondaryTypographyProps={{ sx: { wordBreak: 'break-word' } }}
               />
               <Box sx={{ textAlign: 'right', ml: 2, minWidth: '120px' }}>
                 <Typography variant="caption" color="text.secondary">
-                  {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: es })}
+                  {formatDistanceToNow(notification.createdAt.toDate(), {
+                    addSuffix: true,
+                    locale: es,
+                  })}
                 </Typography>
                 {!notification.isRead && (
                   <Chip label="Nuevo" size="small" color="primary" sx={{ mt: 0.5 }} />

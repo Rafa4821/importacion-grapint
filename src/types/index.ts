@@ -105,9 +105,62 @@ export type ChartType = 'pie' | 'bar' | 'line';
 export type TimeRange = '7d' | '30d' | '90d' | 'all';
 
 export interface WidgetConfig {
-  id: string; // Unique identifier for the widget
+  id: string; 
   metric: string;
   title: string;
   chartType: ChartType;
   timeRange?: TimeRange;
+}
+
+export type NotificationEvent =
+  | 'Vencimiento de cuota'
+  | 'Cuota vencida'
+  | 'Cambio de estado del pedido'
+  | 'Documento nuevo'
+  | 'Gasto nuevo';
+
+export interface NotificationSettings {
+  [key: string]: { 
+    email: boolean;
+    inApp: boolean;
+    push: boolean;
+  };
+}
+
+export interface PushSubscription {
+  endpoint: string;
+  expirationTime?: number | null;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
+export interface NotificationContact {
+  id: string;
+  name: string;
+  email: string;
+  settings: NotificationSettings;
+}
+
+export interface NotificationPayload {
+  order?: {
+    id?: string;
+    orderNumber?: string;
+    providerName?: string;
+    currency?: Currency;
+    status?: OrderStatus;
+  };
+  installment?: {
+    amount?: number;
+    dueDate?: Timestamp;
+  };
+  document?: {
+    type?: string;
+    name?: string;
+  };
+  expense?: {
+    type?: string;
+    amount?: number;
+  };
 }

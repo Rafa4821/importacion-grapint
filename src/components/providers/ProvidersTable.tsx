@@ -63,7 +63,8 @@ export default function ProvidersTable({ providers, onEdit, onDelete }: Provider
 
   return (
     <>
-      <TableContainer component={Paper} elevation={3}>
+      <Box sx={{ overflowX: 'auto' }}>
+      <TableContainer component={Paper} elevation={3} sx={{ minWidth: 800 }}>
         <Table sx={{ minWidth: 650 }} aria-label="tabla de proveedores">
           <TableHead sx={{ bgcolor: 'background.paper' }}>
             <TableRow>
@@ -99,6 +100,7 @@ export default function ProvidersTable({ providers, onEdit, onDelete }: Provider
           </TableBody>
         </Table>
       </TableContainer>
+    </Box>
 
       <Dialog
         open={openDeleteDialog}

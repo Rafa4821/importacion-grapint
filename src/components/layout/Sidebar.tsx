@@ -29,6 +29,7 @@ import {
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
 } from '@mui/icons-material';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { ColorModeContext } from '../ThemeRegistry/ThemeRegistry';
 
 interface SidebarProps {
@@ -41,11 +42,12 @@ interface SidebarProps {
 const navItems = [
   { text: 'Central de Reportes', href: '/', icon: <FileTextIcon /> },
   { text: 'Dashboard Financiero', href: '/dashboard', icon: <LayoutGridIcon /> },
-  { text: 'Proveedores', href: '/providers', icon: <TruckIcon /> },
-  { text: 'Notificaciones', href: '/notifications', icon: <BellIcon /> },
   { text: 'Pedidos', href: '/orders', icon: <ShoppingCartIcon /> },
+  { text: 'Importar', href: '/import', icon: <UploadFileIcon /> },
+  { text: 'Proveedores', href: '/providers', icon: <TruckIcon /> },
   { text: 'Seguimiento', href: '/kanban', icon: <LayoutGridIcon /> },
   { text: 'Calendario', href: '/calendar', icon: <CalendarIcon /> },
+  { text: 'Notificaciones', href: '/settings/notifications', icon: <BellIcon /> },
 ];
 
 const Sidebar = ({ isOpen, setIsOpen, drawerWidth, collapsedDrawerWidth }: SidebarProps) => {
