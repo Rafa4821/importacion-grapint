@@ -5,15 +5,33 @@ import { generateNotificationContentForEvent } from '@/services/notificationTemp
 import { sendEmail } from '@/services/emailService';
 import webpush from 'web-push';
 
-// Initialize web-push
-if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    process.env.VAPID_MAILTO || 'mailto:your-email@example.com',
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
-} else {
-  console.warn('VAPID keys not configured. Push notifications will be disabled.');
+let isVapidInitialized = false;
+
+// Lazily initialize web-push to avoid running this code during build time.
+// This function is called only when a push notification needs to be sent.
+function initializeWebPush() {
+  if (isVapidInitialized) {
+    return true; // Already initialized
+  }
+
+  if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    try {
+      webpush.setVapidDetails(
+        process.env.VAPID_MAILTO || 'mailto:your-email@example.com',
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+      );
+      isVapidInitialized = true;
+      console.log('VAPID details configured successfully.');
+      return true;
+    } catch (error) {
+      console.error('Failed to set VAPID details:', error);
+      return false;
+    }
+  } else {
+    console.warn('VAPID keys not configured. Push notifications will be disabled.');
+    return false;
+  }
 }
 
 // Helper to get all notification contacts
@@ -83,6 +101,12 @@ export async function dispatchNotification(event: NotificationEvent, payload: No
 
     // 3. Send Push Notification
     if (contactSettings.push && allPushSubscriptions.length > 0) {
+      const canSendPush = initializeWebPush();
+      if (!canSendPush) {
+        console.warn('Skipping push notification due to VAPID initialization failure.');
+        continue;
+      }
+      
       console.log(`Sending push notifications to ${allPushSubscriptions.length} subscribers.`);
       const pushPayload = JSON.stringify({ title: subject, body, url: referenceUrl });
       
