@@ -32,7 +32,8 @@ const eventKeys = Object.keys(eventLabels);
 const channelKeys = Object.keys(channelLabels);
 
 interface NotificationSettingsMatrixProps {
-  control: Control<any>;
+  // Use FieldValues for generic form control to ensure reusability and type safety.
+  control: Control<FieldValues>;
 }
 
 const NotificationSettingsMatrix: React.FC<NotificationSettingsMatrixProps> = ({ control }) => {
